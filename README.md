@@ -10,5 +10,7 @@ https://github.com/jamieboyd/GPIO_Thread
 See published paper:
 https://www.ncbi.nlm.nih.gov/pubmed/28476590
 
-see youTube movie of hardware setup:
+See youTube movie of hardware setup:
 https://www.youtube.com/watch?v=cj43hAdYo34
+
+Please see the Wiki for detailed information https://github.com/jamieboyd/AutoMouseWeight/wiki
