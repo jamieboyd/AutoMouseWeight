@@ -1,0 +1,54 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.pyc
+*.pyo
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.com
+*.class
+*.dll
+
+# Packages 
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.tar
+*.zip
+
+#OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.trashes
+ehthumbs.db
+
+#build folder
+build/
