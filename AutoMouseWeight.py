@@ -1,6 +1,6 @@
 #! /usr/bin/python
 #-*-coding: utf-8 -*-
-from AHF_TagReader import AHF_TagReader
+from RFIDTagReader import RFIDTagReader
 from Scale import Scale
 import RPi.GPIO as GPIO
 from array import array
