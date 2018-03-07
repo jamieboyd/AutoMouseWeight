@@ -17,7 +17,7 @@ kTHREADARRAYSIZE = 200 # size of array used for threaded reading from load cell 
 # Global variables for RFID reader - need to be global so we can access reader easily from interrupt
 tag =0
 serialPort = '/dev/serial0'
-tagReader = RFID_TagReader(serialPort, False)
+tagReader = RFIDTagReader(serialPort, False)
 
 """
 Threaded call back function on Tag-In-Range pin
@@ -42,7 +42,7 @@ def main():
     dataPin=17
     clockPin=27
     gmPerUnit=7.14e-05
-    tirPin=22
+    tirPin=21
     # save data locally and/or remotely
     saveData = kSAVE_DATA_LOCAL
     """
