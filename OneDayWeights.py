@@ -10,7 +10,7 @@ kKERNEL_WIDTH = 17 # widht of the smoothing kernel used for the derivative of th
 kN_SMOOTH = 5 # number of times the smoothing kernel is applied to the derivarive
 
 # constants used for emailing weights to interested parties.
-# could improve this by comparing to baseline wts, alerting if current wt has decreased by x% from baseline
+# could improve this by comparing to baseline weights, alerting if current wt has decreased by x% from baseline
 kFROMADDRESS = 'myGmailAcct'
 kPASSWORD = 'myGmailPassword'
 kRECIPIENTS = ['joeblow@nowhere.com','janedoe@anon.ca']
@@ -155,9 +155,9 @@ Sample usage of the program
 """
 
 if __name__ == '__main__':
-    kDATA_FOLDER = '/home/pi/Documents/AutoMouseWeight_Data/'               #where data files are located
+    kDATA_FOLDER = '/home/pi/Documents/AutoMouseWeight_Data/'       #where data files are located
     kOUTPUT_FOLDER = '/home/pi/Documents/AutoMouseWeight_Data/'     # where text fiels are saved
-    kCAGE_NAME = 'cage_0'                                            # names of data files start with cage name
+    kCAGE_NAME = 'cage_0'                                           # names of data files start with cage name
 
     kDO_PLOTS = False # program will stop and display plots of raw data and smoothed derivative
     kSEND_MAIL = True # if true, email will be sent to user

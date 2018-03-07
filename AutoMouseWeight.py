@@ -1,5 +1,13 @@
 #! /usr/bin/python
 #-*-coding: utf-8 -*-
+
+"""
+AutoMouseWeight program to automatically weigh RFID tagged individuals as they cross an
+HX711-based scale with an Innovations Design RFID Tag reader installed
+Designed for mice, but it could be used for anything that can move and carry an RFID tag
+Last Modified:
+2018/03/07 by Jamie Boyd - cleaned up a bit, added some comments
+"""
 from RFIDTagReader import RFIDTagReader
 from Scale import Scale
 import RPi.GPIO as GPIO
@@ -14,10 +22,30 @@ kCAGE_PATH = '/home/pi/Documents/AutoMouseWeight_Data/' # path where data from e
 kDAYSTARTHOUR = 13 # 0 to start the file for each day at 12 midnight. Could set to 7 to synch files to mouse day/night cycle
 kTIMEOUTSECS=0.05 #time to sleep in each pass through loop while witing for RFID reader
 kTHREADARRAYSIZE = 200 # size of array used for threaded reading from load cell amplifier
-# Global variables for RFID reader - need to be global so we can access reader easily from interrupt
+
+# Constants for GPIO pin numbers and scaling for HX711, adjust as required for individual setup
+kDATA_PIN=17
+kCLOCK_PIN=27
+kGRAMS_PER_UNIT=7.14e-05
+
+"""
+constants for RFID Reader, adjust as required. Note that code as written only works with ID tag readers
+not RDM readers because of reliance on Tag-In-Range Pin for interrupt
+"""
+kSERIAL_PORT = '/dev/serial0'
+kTIR_PIN =21
+
+# RFID reader object and tag need to be global so we can access them easily from Tag-In-Range calback
+tagReader = RFIDTagReader(kSERIAL_PORT, doChecksum = False, timeOutSecs = 0.1, kind='ID'):
 tag =0
-serialPort = '/dev/serial0'
-tagReader = RFIDTagReader(serialPort, False)
+
+"""
+define constants for where data is saved. Work is in progress for sending data to a remote server for
+analysis and display on a web page. For now, always set kSAVE_DATA to kSAVE_DATA_LOCAL
+"""
+kSAVE_DATA_LOCAL =1
+kSAVE_DATA_REMOTE =2
+kSAVE_DATA = kSAVE_DATA_LOCAL
 
 """
 Threaded call back function on Tag-In-Range pin
@@ -35,22 +63,11 @@ def tagReaderCallback (channel):
 def main():
 
     """
-    Variables for GPIO pin numbers and scaling, adjust as required for individual setup
-    set initGPIO to be false only if using wiringPi library for other purposes
-    and wiringPi GPIO initialization has already been done.
-    """
-    dataPin=17
-    clockPin=27
-    gmPerUnit=7.14e-05
-    tirPin=21
-    # save data locally and/or remotely
-    saveData = kSAVE_DATA_LOCAL
-    """
     Initialize the scale from variables listed above and do an initial taring
-    of the scale with 5 reads. Because pins are accessed from C++, do not call
+    of the scale with 5 reads. Because pins are only accessed from C++, do not call
     Python GPIO.setup for the dataPin and the clockPin
     """
-    scale = Scale (dataPin, clockPin, gmPerUnit)
+    scale = Scale (kDATA_PIN, kCLOCK_PIN, kGRAMS_PER_UNIT)
     scale.turnOn()
     scale.threadSetArraySize (kTHREADARRAYSIZE)
     scale.tare(10, True)
@@ -60,10 +77,9 @@ def main():
     """
     GPIO.setmode (GPIO.BCM)
     GPIO.setwarnings(False)
-    GPIO.setup (tirPin, GPIO.IN)
-    GPIO.add_event_detect (tirPin, GPIO.BOTH)
-    GPIO.add_event_callback (tirPin, tagReaderCallback)
-
+    GPIO.setup (kTIR_PIN, GPIO.IN)
+    GPIO.add_event_detect (kTIR_PIN, GPIO.BOTH)
+    GPIO.add_event_callback (kTIR_PIN, tagReaderCallback)
     """
     A new binary data file is opened for each day, with a name containing the 
     current date, so open a file to start with
@@ -74,10 +90,9 @@ def main():
         startDay = startDay + timedelta (hours=-24)
     startSecs =startDay.timestamp() # used to report time of an entry through the weighing tube
     nextDay = startDay + timedelta (hours=24)
-    
     filename = kCAGE_PATH + kCAGE_NAME + '_' + str (startDay.year) + '_' + '{:02}'.format(startDay.month)+ '_' + '{:02}'.format (startDay.day)
-    print ('opening file name = ' + filename)
-    if saveData & kSAVE_DATA_LOCAL:
+    if kSAVE_DATA & kSAVE_DATA_LOCAL:
+        print ('opening file name = ' + filename)
         outFile=open (filename, 'ab')
         from One_day_method2 import get_day_weights
     """
@@ -99,7 +114,7 @@ def main():
             """
             while tag==0:
                 if datetime.fromtimestamp (int (time())) > nextDay:
-                    if saveData & kSAVE_DATA_LOCAL:
+                    if kSAVE_DATA & kSAVE_DATA_LOCAL:
                         outFile.close()
                         print ('save data date =', startDay.year, startDay.month, startDay.day)
                         get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, True)
@@ -107,7 +122,7 @@ def main():
                     nextDay = startDay + timedelta (hours=24)
                     startSecs =startDay.timestamp()
                     filename = kCAGE_PATH + kCAGE_NAME + '_' + str (startDay.year) + '_' + '{:02}'.format(startDay.month)  + '_' + '{:02}'.format (startDay.day)
-                    if saveData & kSAVE_DATA_LOCAL:
+                    if kSAVE_DATA & kSAVE_DATA_LOCAL:
                         outFile=open (filename, 'ab')
                         print ('opening file name = ' + filename)
                 else:
@@ -116,6 +131,7 @@ def main():
             A Tag has been read. Fill the metaData array and tell the C++ thread to start
             recording weights
             """
+            scale.turnOn()
             thisTag = tag
             print ('mouse = ', thisTag)
             metaData [0]= -(thisTag%100000)
@@ -129,50 +145,36 @@ def main():
             the array is full, then stop the thread print the metaData array
             and the read weights from the thread array to the file
             """
-            while (tag == thisTag or (tag == 0 and scale.threadArray [nReads-1] > 2)) and nReads < scale.arraySize:
+            while ((tag == thisTag or ((tag == 0 and scale.threadArray [nReads-1] > 2)) and nReads < scale.arraySize:
                 if nReads > lastRead:
                     print (nReads, scale.threadArray [nReads-1])
                     lastRead = nReads
+                sleep (0.05)
                 nReads = scale.threadCheck()
             nReads = scale.threadStop()
-            if saveData & kSAVE_DATA_LOCAL:
+            if kSAVE_DATA & kSAVE_DATA_LOCAL:
                 metaData.tofile (outFile)
                 scale.threadArray[0:nReads-1].tofile(outFile)
-            if saveData & kSAVE_DATA_REMOTE:
+            if kSAVE_DATA & kSAVE_DATA_REMOTE:
                 response = requests.post(kSERVER_URL, data={'filename': filename, 'array': str ((metaData + scale.threadArray[0:nReads-1]).tobytes(), 'latin_1')}).text
                 if response != '\nSuccess\n':
                     print (reponse)
+            scale.turnOff()
         except KeyboardInterrupt:
-            while True:
-                print ('---------------------------------------------------------------------------------------------------')
-                event = int (input ('0 to tare\n1 to weigh once\n2 for avg of 10 readings\n3 to turn OFF\n4 to turn ON\n5 for threaded read\n6 to continue weighing\n7 to quit program\n:'))
-                if event == 0:
-                    scale.tare(5,True)
-                elif event ==1:
-                    print ('Weight =', scale.weighOnce(), 'g')
-                elif event == 2:
-                    print ('Weight =', scale.weigh(10), 'g')
-                elif event == 3:
-                    scale.turnOff()
-                elif event == 4:
-                    scale.turnOn()
-                elif event == 5:
-                    scale.threadStart (scale.arraySize)
-                    nReads = scale.threadCheck() 
-                    while nReads < scale.arraySize:
-                        print ("Thread has read ", nReads, " weights, last reading was ", scale.threadArray [nReads-1])
-                        nReads = scale.threadCheck()
-                elif event == 6:
-                    break
-                elif event == 7:
-                    if saveData & kSAVE_DATA_LOCAL:
-                        outFile.close()
+            scale.turnOn()
+            event = scale.scaleRunner ('\n7 to quit AutoMouseWeight program\n:'):
+            if event ==6:
+                break
+            elif event == 7:
+                if kSAVE_DATA & kSAVE_DATA_LOCAL:
+                    outFile.close()
                     GPIO.cleanup()
-                    return
+            return
         except Exception as error:
             print("Closing file...")
             outFile.close()
             raise error
+
 
 if __name__ == '__main__':
    main()
