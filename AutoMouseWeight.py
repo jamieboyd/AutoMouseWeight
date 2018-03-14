@@ -22,6 +22,7 @@ kCAGE_PATH = '/home/pi/Documents/AutoMouseWeight_Data/' # path where data from e
 kDAYSTARTHOUR = 13 # 0 to start the file for each day at 12 midnight. Could set to 7 to synch files to mouse day/night cycle
 kTIMEOUTSECS=0.05 #time to sleep in each pass through loop while witing for RFID reader
 kTHREADARRAYSIZE = 200 # size of array used for threaded reading from load cell amplifier
+kMINWEIGHT = 2 # cuttoff weight where we stop the thread from reading
 
 # Constants for GPIO pin numbers and scaling for HX711, adjust as required for individual setup
 kDATA_PIN=17
@@ -64,12 +65,11 @@ def main():
 
     """
     Initialize the scale from variables listed above and do an initial taring
-    of the scale with 5 reads. Because pins are only accessed from C++, do not call
+    of the scale with 10 reads. Because pins are only accessed from C++, do not call
     Python GPIO.setup for the dataPin and the clockPin
     """
-    scale = Scale (kDATA_PIN, kCLOCK_PIN, kGRAMS_PER_UNIT)
-    scale.turnOn()
-    scale.threadSetArraySize (kTHREADARRAYSIZE)
+    scale = Scale (kDATA_PIN, kCLOCK_PIN, kGRAMS_PER_UNIT, kTHREADARRAYSIZE)
+    scale.weighOnce ()
     scale.tare(10, True)
     """
     Setup GPIO for TIR pin, with tagReaderCallback installed as
@@ -131,7 +131,7 @@ def main():
             A Tag has been read. Fill the metaData array and tell the C++ thread to start
             recording weights
             """
-            scale.turnOn()
+            #scale.turnOn()
             thisTag = tag
             print ('mouse = ', thisTag)
             metaData [0]= -(thisTag%100000)
@@ -145,7 +145,7 @@ def main():
             the array is full, then stop the thread print the metaData array
             and the read weights from the thread array to the file
             """
-            while ((tag == thisTag or ((tag == 0 and scale.threadArray [nReads-1] > 2)) and nReads < scale.arraySize:
+            while ((tag == thisTag or ((tag == 0 and scale.threadArray [nReads-1] > kMINWEIGHT)) and nReads < scale.arraySize:
                 if nReads > lastRead:
                     print (nReads, scale.threadArray [nReads-1])
                     lastRead = nReads
@@ -159,16 +159,16 @@ def main():
                 response = requests.post(kSERVER_URL, data={'filename': filename, 'array': str ((metaData + scale.threadArray[0:nReads-1]).tobytes(), 'latin_1')}).text
                 if response != '\nSuccess\n':
                     print (reponse)
-            scale.turnOff()
+            #scale.turnOff()
         except KeyboardInterrupt:
-            scale.turnOn()
+            #scale.turnOn()
             event = scale.scaleRunner ('\n7 to quit AutoMouseWeight program\n:'):
             if event ==6:
                 break
             elif event == 7:
                 if kSAVE_DATA & kSAVE_DATA_LOCAL:
                     outFile.close()
-                    GPIO.cleanup()
+                GPIO.cleanup()
             return
         except Exception as error:
             print("Closing file...")
