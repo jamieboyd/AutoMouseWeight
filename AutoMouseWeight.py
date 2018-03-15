@@ -34,10 +34,10 @@ constants for RFID Reader, adjust as required. Note that code as written only wo
 not RDM readers because of reliance on Tag-In-Range Pin for interrupt
 """
 kSERIAL_PORT = '/dev/serial0'
-kTIR_PIN =21
+kTIR_PIN =22
 
 # RFID reader object and tag need to be global so we can access them easily from Tag-In-Range calback
-tagReader = RFIDTagReader(kSERIAL_PORT, doChecksum = False, timeOutSecs = 0.1, kind='ID'):
+tagReader = RFIDTagReader(kSERIAL_PORT, doChecksum = False, timeOutSecs = 0.1, kind='ID')
 tag =0
 
 """
@@ -94,7 +94,7 @@ def main():
     if kSAVE_DATA & kSAVE_DATA_LOCAL:
         print ('opening file name = ' + filename)
         outFile=open (filename, 'ab')
-        from One_day_method2 import get_day_weights
+        from OneDayWeights import get_day_weights
     """
     Weight data is written to the file as grams, in 32 bit floating point format. Each run of data is
     prefaced by metadata from a 32 bit floating point metaData array of size 2. The first point contains
@@ -145,7 +145,7 @@ def main():
             the array is full, then stop the thread print the metaData array
             and the read weights from the thread array to the file
             """
-            while ((tag == thisTag or ((tag == 0 and scale.threadArray [nReads-1] > kMINWEIGHT)) and nReads < scale.arraySize:
+            while ((tag == thisTag or (tag == 0 and scale.threadArray [nReads-1] > kMINWEIGHT)) and nReads < scale.arraySize):
                 if nReads > lastRead:
                     print (nReads, scale.threadArray [nReads-1])
                     lastRead = nReads
@@ -162,7 +162,7 @@ def main():
             #scale.turnOff()
         except KeyboardInterrupt:
             #scale.turnOn()
-            event = scale.scaleRunner ('\n7 to quit AutoMouseWeight program\n:'):
+            event = scale.scaleRunner ('\n7 to quit AutoMouseWeight program\n:')
             if event ==6:
                 break
             elif event == 7:
