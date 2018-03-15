@@ -16,7 +16,7 @@ from time import time, sleep
 from datetime import date, datetime, timedelta
 
 # Constants for saving data
-kCAGE_NAME = 'cage_0'   # cage name, to tell data from different cages 
+kCAGE_NAME = 'cage_2'   # cage name, to tell data from different cages 
 kCAGE_PATH = '/home/pi/Documents/AutoMouseWeight_Data/' # path where data from each day will be saved
 
 kDAYSTARTHOUR = 13 # 0 to start the file for each day at 12 midnight. Could set to 7 to synch files to mouse day/night cycle
@@ -25,7 +25,7 @@ kTHREADARRAYSIZE = 200 # size of array used for threaded reading from load cell 
 kMINWEIGHT = 2 # cuttoff weight where we stop the thread from reading
 
 # Constants for GPIO pin numbers and scaling for HX711, adjust as required for individual setup
-kDATA_PIN=17
+kDATA_PIN=22
 kCLOCK_PIN=27
 kGRAMS_PER_UNIT=7.14e-05
 
@@ -34,7 +34,7 @@ constants for RFID Reader, adjust as required. Note that code as written only wo
 not RDM readers because of reliance on Tag-In-Range Pin for interrupt
 """
 kSERIAL_PORT = '/dev/serial0'
-kTIR_PIN =22
+kTIR_PIN =17
 
 # RFID reader object and tag need to be global so we can access them easily from Tag-In-Range calback
 tagReader = RFIDTagReader(kSERIAL_PORT, doChecksum = False, timeOutSecs = 0.1, kind='ID')
@@ -162,17 +162,16 @@ def main():
             #scale.turnOff()
         except KeyboardInterrupt:
             #scale.turnOn()
-            event = scale.scaleRunner ('\n7 to quit AutoMouseWeight program\n:')
-            if event ==6:
-                break
-            elif event == 7:
+            event = scale.scaleRunner ('7 to quit AutoMouseWeight program\n:')
+            if event == 7:
                 if kSAVE_DATA & kSAVE_DATA_LOCAL:
                     outFile.close()
                 GPIO.cleanup()
-            return
+                return
         except Exception as error:
             print("Closing file...")
             outFile.close()
+            GPIO.cleanup()
             raise error
 
 
