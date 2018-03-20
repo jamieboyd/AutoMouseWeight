@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<HTML>
+<head>
+<title>AutoMouseWeight</title>
+<META NAME="AUTHOR" CONTENT="Jamie Boyd">
+</head>
+<H2>Documentation for AutoMouseWeight</H2>
+
+AutoMouseWeight is a Raspberry Pi Python program to automatically weigh and log weight data for individuals identified by RFID tags. It requires a load cell connected to an <a href = "https://www.sparkfun.com/products/13879">HX711 load cell amplifier</a>, and an <a href="http://id-innovations.com/httpdocs/default.htm">Innovations Design</a> RFID tag reader (ID-3LA, ID-12LA, or ID-20LA). AutoMouseWeight was designed for mice, but it could be used for anything that can move and carry an RFID tag.<br>
+
+The basic setup of the electronics and hardware and the use of the system to log mice weights has been published:
+<a href="https://www.sciencedirect.com/science/article/pii/S0165027017301218">Automating mouse weighing in group homecages with Raspberry Pi micro-computers. Omid Noorshams Jamie D. Boyd, and Timothy H. Murphy: Journal of Neuroscience Methods, 2017 Jun 15;285:1-5.</a> This is an improved version of the software used in the paper. There is a <a href="https://www.youtube.com/watch?v=cj43hAdYo34">youTube movie</a> demonstrating the electronics setup. The STL files included here were created by Omid Noorshams and are for 3D printing of a tunnel that rests on the load cell and related couplers, plus a holder for an ID-20LA. Their use is explained in the paper.<br>
+
+<h3>Installation</h3>
+AutoMouseWeight uses the HX711 C++ Python module from <a href="https://github.com/jamieboyd/GPIO_Thread">GPIO_Thread</a> and <a href="https://github.com/jamieboyd/RFIDTagReader">RFIDTagReader</a>.<br>
+Install the HX711 module. This includes a C module, so you will need the python development library. The GPIO_Thread uses the <a href="https://github.com/jamieboyd/pulsedThread">pulsedThread library</a> so you will need to install this as well.<br>
+<ol><li>sudo apt-get install python3-dev</li>
+	<li>git clone https://githib.com/jamieboyd/pulsedThread</li>
+	<li>cd pulsedThread</li>
+	<li>make</li>
+	<li>sudo make install</li>
+</ol>
+This installs the pulsedThread library.<br>
+<ol>
+	<li>git clone https://githib.com/jamieboyd/GPIO_Thread</li>
+	<li>cd GPIO_Thread</li>
+	<li>sudo python3 HX711_setup.py install</li></ol>
+This installs the c++ module HX711 plus a pure Python module, Scale, that wraps the HX711 in a Python class.<br>
+
+Install RFIDTagReader:
+<ol><li>git clone https://githib.com/jamieboyd/RFIDTagReader</li>
+	<li>cd RFIDTagReader</li>
+	<li>sudo python3 RFIDTagReader_setup.py install</li></ol>
+This installs the RFIDTagReader Python module.
+
+<h3>Settings From Constants</h3>
+At the top of AutoMouseWeight.py are some constants that need to be set before running the program.<br>
+<table cellspacing="0" cellpadding="0" border = "1">
+	<caption>Settings for Running the Program</caption>
+<tbody>
+	<tr>
+	      <td>kCAGE_NAME</td>
+	      <td>cage name will be included in the name of the data files printed by AutoMouseWeight</td>
+	</tr>
+	<tr>
+		<td>kCAGE_PATH</td>
+		<td>The file path where data files from each day will be saved</td>
+	</tr>
+	<tr>
+		<td>kDAYSTARTHOUR</td>
+		<td>The hour when a new file is created. Use 0 to start the file for each day at 12 midnight. Set to 7 to synch files to mouse day/night cycle. Set to 13 to do the file turnaround in the quiet of the afternoon</td>
+	</tr>
+	<tr>
+		<td>kTIMEOUTSECS</td>
+		<td>time in seconds to sleep in each pass through loop while witing for the RFID reader. 0.05 is fine</td>
+	</tr>
+	<tr>
+		<td>kTHREADARRAYSIZE</td>
+		<td>size of array used for threaded reading from load cell amplifier. The HX711 reads at 10 Hz so 200 points will record for 20 seconds. Mice typically pass through the weighing chamber within this time</td>
+	</tr>
+	<tr>
+		<td>kMINWEIGHT</td>
+		<td>cut off weight where we stop the scale from reading one it has dipped below</td>
+	</tr>
+</tbody>
+</table>
+<br>
+
+<table cellspacing="0" cellpadding="0" border = "1">
+	<caption>Settings for GPIO pin numbers and scaling for HX711</caption>
+<tbody>
+	<tr>
+	      <td>kDATA_PIN</td>
+		  <td>The GPIO pin which is connected to the data pin of the HX711</td>
+	  </tr>
+	  <tr>
+		  <td>kCLOCK_IN</td>
+		  <td>The GPIO pin which is connected to the clock pin of the HX711</td>
+	  </tr>
+	  <tr>
+		  <td>kGRAMS_PER_UNIT</td>
+		  <td>Scaling of the load cell, in grams per raw A/D unit. For our setup, this was 7.14e-05</td>
+	  </tr>
+	  <tr>
+		  <td>kSERIAL_PORT</td>
+		  <td> The serial port used for the tag reader. Usually '/dev/serial0'</td>
+	  </tr>
+	  <tr>
+		  <td>kTIR_PIN</td>
+		  <td>The GPIO pin which is connected to the Tag-In-Range pin of the Tag Reader</td>
+	  </tr>
+</tbody>
+</table>
+<br>
+Note that the code as written only works with ID tag readers not RDM readers because of the reliance on the Tag-In-Range Pin which is used to generate an interrupt.<br>
+
+<table cellspacing="0" cellpadding="0" border = "1">
+	<caption>Constants for how data is saved</caption>
+<tbody>
+	<tr>
+	      <td>kSAVE_DATA_LOCAL = 1</td>
+	      <td>Data is saved locally as specified by kDATA_PATH and kCAGE_NAME</td>
+	</tr>
+	<tr>
+	      <td>kSAVE_DATA_REMOTE = 2</td>
+	      <td>Data is sent to a remote server for analysis and display</td>
+	</tr>
+	<tr>
+		<td>kSAVE_DATA</td>
+		<td>Set this to a bit-wise combination of kSAVE_DATA_LOCAL and kSAVE_DATA_REMOTE</td>
+	</tr>
+	<tr>
+		<td>kEMAIL_WEIGHTS</td>
+		<td>if true, and kSAVE_DATA_LOCAL is set, results for each day will be emailed to kRECIPIENTS list in One_Day_weights.py</td>
+	</tr>
+</tbody>
+</table>
+<br>Work is in progress for sending data to a remote server for analysis and display on a web page. For now, always set kSAVE_DATA to kSAVE_DATA_LOCAL
+
+<h3>Running AutoMouseWeight</h3>
+Upon being started, AutoMouseWeight tares the scale, and opens a binary data file named for cage name and date. The program then loops forever collecting weight data whenever a tag is read by the Tag Reader. The program will close the existing file and start a new data file every 24 hours, synched to the kDAYSTARTHOUR constant. It can run constantly for many days at a time.<br>
+
+The basic program flow is as follows. Whenever a tag is read by the tag reader, the program records the tag ID number and the time, and starts the scale collecting weight data as fast as it can. This is done on a separate thread from the main program in C module. The scale keeps reading weights into the array until the array is full, or until the tag goes out of range and the scale reads leads than kMINWEIGHT, or until a different tag is read by the tag reader. The tag ID and the time stamp are then printed to the data file, followed by the contents of the data array up to the point where the scale was stopped.<br>
+
+The collection of data can be interrupted with ctrl-c. This brings up the ScaleRunner function which presents a text based menu with the following options:
+<ol><li>Tare the scale with average of 10 readings</li>
+<li>Weigh once</li>
+<li>Weigh 10 times and print the average weight</li>
+<li>Set the scale to low power mode</li>
+<li>Wake the scale from low power mode</li>
+<li>Test the threaded read</li>
+<li>Exit the ScaleRunner and return to collecting weight data</li>
+<li>Quit the AutoMouseWeight program</li></ol>
+<br>
+This can be used for testing the scale at any time. It may be useful to tare the scale from time to time. With mice, for instance, bits of bedding may be deposited in the scale chamber. Taring the scale at the start of every day could be added to the program. Selecting 6 will quit the scaleRunner function and return to collecting weight data. Selecting 7 will exit the AutoMouseWeight program, first closing the currently open data file.
+
+<h3>AutoMouseWeight Data</h3>
+AutoMouseWeight Data files for each day are named with kCAGE_NAME_4 Digit year_2 Digit Month_2 Digit Day, e.g., cage1_2017_06_04, and are saved in the location specified by kCAGE_PATH. Data files are in binary 32 bit floating point format. Weight data is written to the file as grams. Each run of weight data is prefaced by the last 6 digits of the RFID code, as a negative value to make it easy for analysis code to find the start of each run, and the time in seconds since the start of the day, as set by the kDAYSTARTHOUR constant. Only the last 6 digits of the RFID code are written because that is the limit of the precision of a 32 bit floating point value. In practice, this limit has not proved to be a problem.<br>
+
+<table cellspacing="0" cellpadding="0" border = "1">
+	<caption>A sample run of data</caption>
+<tbody>
+<tr><td>-50610</td><td>last 6 digits of RFID code</td></tr>
+<tr><td>1496304640</td><td>seconds since start of day</td></tr>
+<tr><td>12.725607</td><td>1st weight reading</td></tr>
+<tr><td>17.459797</td><td>2nd weight reading</td></tr>
+<tr><td>22.18738</td><td>3rd weight reading</td></tr>
+<tr><td>22.010483</td><td>4th weight reading</td></tr>
+<tr><td>21.706848</td><td>5th weight readin</td></tr>
+<tr><td>26.368086</td><td>6th weight reading</td></tr>
+<tr><td>31.028961</td><td>7th weight reading</td></tr>
+<tr><td>32.730495</td><td>8th weight reading</td></tr>
+<tr><td>33.041756</td><td>9th weight reading</td></tr>
+<tr><td>33.286957</td><td>10th weight reading</td></tr>
+<tr><td>.</td><td> </td></tr>
+<tr><td>.</td><td> </td></tr>
+<tr><td>.</td><td> </td></tr>
+<tr><td>24.153572</td><td>5th from last weight reading</td></tr>
+<tr><td>17.559387</td><td>4th from last weight reading</td></tr>
+<tr><td>11.345419</td><td>3rd from last weight reading</td></tr>
+<tr><td>7.2594399</td><td>2nd from last weight reading</td></tr>
+<tr><td>4.7857132</td><td>last weight reading</td></tr>
+</tbody>
+</table>
+<br>
+As the mouse moves across the platform, weight values start out low, rapidly reach a plateau, and then drop quickly as the mouse leaves the platform on the other side. 20 runs of data from the same mouse all from the same day are shown below. The plateau, easily seen when multiple runs are plotted together, corresponds to the actual weight of the mouse.<br>
+<IMG SRC="AMWdata.png" ALT="Sample AutoMouseWeight Raw Data">
+
+<h3>AutoMouseWeight Data Analysis</h3>
+A second Python script, OneDayWeights.py, is included with AutoMouseWeight. It can be run seprately to analyze the data files produced by AutoMouseWeight, or if kSAVE_DATA_LOCAL is set in kSAVE_DATA, the get_day_weights function is imported from OneDayWeights.py and is run at the end of every day. The get_day_weights function uses the numpy library:<br>
+sudo apt-get install python3-numpy<br>
+
+f running OneDayWeights stand alone, you may wish to set the option to display plots of the data. This is done with matplotlib:</p>
+sudo apt-get install python3-matplotlib<br>
+
+The get_day_weights function is called like this:<br>
+get_day_weights (folder_path, cageName, date_year, date_month, date_day, output_path, doPlots, sendMail)
+<ul><li>folder_path --  path to the folder where the raw data files are</li>
+	<li>cageName -- cage name, as set by AutoMouseWeight program, file names start with this</li>
+	<li>date_year -- 4 digit year</li>
+	<li>date_month -- 2 digit month</li>
+	<li>date_day -- 2 digit day</li>
+	<li>output_path --  path to folder where the outout text files will be saved</li>
+	<li>doPlots -- if this boolean is true, graphs of intermediate stages of analysis will be displayed</li>
+	<li>sendMail -- if this boolean is true, e-mails containing weight data will be sent to addresses listed in kRECIPIENTS</li>
+</ul>
+<br>
+The analysis used in OneDayWeights.py is quite simple, based on finding the most commonly ocurring weight for each mouse. For each day, weights for each mouse is copied into a numpy array. Weights below a minimum threshold (set by the constant kMIN_WEIGHT) or above a maximum threshold (set by the constant kMAX_WEIGHT) are excluded. A cumulative histogram of the weight data is made, using the bin size set by the constant kHIST_BINSIZE. The derivative of the histogram is taken, and smoothed with kN_SMOOTH passes of a Gaussian kernel of kKERNEL_WIDTH. The center of the histogram bin containing the maximum value of the smoothed derivative is returned as the result. The data for each day is saved in the folder specified by output_path, in a text file named cageName + '_weights_' + 4 Digit year_2 Digit Month_2 Digit Day + '.txt' Sample output is:
+<br>
+<table cellspacing="0" cellpadding="0" border = "1">
+	<caption>Sample output from get_day_weights</caption>
+<tbody>
+<tr><td>mouse</td><td>entries</td><td>weight</td></tr>
+<tr><td>m26</td><td>1</td><td>24.9</td></tr>
+<tr><td>m90629</td><td>12</td><td>24.6</td></tr>
+<tr><td>m90647</td><td>3</td><td>28.2</td></tr>
+<tr><td>m90716</td><td>10</td><td>24.6</td></tr>
+<tr><td>m90797</td><td>3</td><td>26.1</td></tr>
+<tr><td>m90882</td><td>14</td><td>23.1</td></tr>
+<tr><td>m90964</td><td>4</td><td>26.4</td></tr>
+<tr><td>m90969</td><td>4</td><td>28.1</td></tr>
+<tr><td>m91183</td><td>29</td><td>26.2</td></tr>
+</tbody>
+</table>
+<h3>Emailing Results</h3>
+If the Pi recording weights is online, email containing the results for each day can be sent to to interested parties. Constants used for emailing weights are found at the top of OneDayWeights.py. Fill these in before running the program.<br>
+<ul><li>kFROMADDRESS -- The account used to do the mailing</li>
+	<li>kPASSWORD -- The password for the email account</li>
+	<li>kRECIPIENTS -- a list of email addresses, e.g., ['joesmith@company.com','janedoe@uni.ca']</li>
+	<li>kSERVER -- the server and port used for mailing, e.g., 'smtp.gmail.com:587'</li>
+</ul>
+<br>
+Note that the email password is saved as clear text, not encoded. You can make a separate gmail account for your AutoMouseWeight. The emailing code could be improved by comparing each mouse's weight to a baseline weight, and sending an email alert only if the current weight had decreased by some set percentage from baseline.<br>
+<h3>Running OneDayWeights Stand-Alone</h3>
+When run as a stand alone script, OneDayWeights.py repeatedly querries the user for a year, month, and date, and runs the get_day_weights function with other arguments set from constants in OneDayWeights.py:<br> 
+<ul><li>kDATA_FOLDER -- where input binary data files are located</li>
+	<li>kOUTPUT_FOLDER -- where output text fiels are saved</li>
+	<li>kCAGE_NAME -- names of data files start with cage name</li>
+	<li>kDO_PLOTS -- if true, program will stop and display plots of raw data and smoothed derivative</li>
+	<li>kSEND_MAIL -- if true, email will be sent to list from kRECIPIENTS</li>
+</ul>
+</body>
+</html>

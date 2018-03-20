@@ -159,8 +159,8 @@ if __name__ == '__main__':
     kOUTPUT_FOLDER = '/home/pi/Documents/AutoMouseWeight_Data/'     # where text fiels are saved
     kCAGE_NAME = 'cage_0'                                           # names of data files start with cage name
 
-    kDO_PLOTS = False # program will stop and display plots of raw data and smoothed derivative
-    kSEND_MAIL = True # if true, email will be sent to user
+    kDO_PLOTS = True # program will stop and display plots of raw data and smoothed derivative
+    kSEND_MAIL = False # if true, email will be sent to user
 
     while True:
         year = 0
