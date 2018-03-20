@@ -47,7 +47,7 @@ analysis and display on a web page. For now, always set kSAVE_DATA to kSAVE_DATA
 kSAVE_DATA_LOCAL =1
 kSAVE_DATA_REMOTE =2
 kSAVE_DATA = kSAVE_DATA_LOCAL
-
+kEMAIL_WEIGHTS = True # if true, and kSAVE_DATA_LOCAL is set, results for each day will be emailed to kRECIPIENTS list in One_Day_weights.py
 """
 Threaded call back function on Tag-In-Range pin
 Updates tag global variable whenever Tag-In-Range pin toggles
@@ -117,7 +117,7 @@ def main():
                     if kSAVE_DATA & kSAVE_DATA_LOCAL:
                         outFile.close()
                         print ('save data date =', startDay.year, startDay.month, startDay.day)
-                        get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, True)
+                        get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, kEMAIL_WEIGHTS)
                     startDay = nextDay
                     nextDay = startDay + timedelta (hours=24)
                     startSecs =startDay.timestamp()
