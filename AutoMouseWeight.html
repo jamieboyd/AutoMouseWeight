@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<HTML>
+<head>
+<title>AutoMouseWeight</title>
+<META NAME="AUTHOR" CONTENT="Jamie Boyd">
+</head>
+<H2>Documentation for AutoMouseWeight</H2>
+
+AutoMouseWeight is a Raspberry Pi Python program to automatically weigh and log weight data for individuals identified by RFID tags. It requires a load cell connected to an <a href = "https://www.sparkfun.com/products/13879">HX711 load cell amplifier</a>, and an <a href="http://id-innovations.com/httpdocs/default.htm">Innovations Design</a> RFID tag reader (ID-3LA, ID-12LA, or ID-20LA). AutoMouseWeight was designed for mice, but it could be used for anything that can move and carry an RFID tag.</p>
+
+The basic setup of the electronics and hardware and the use of the system to log mice weights has been published:
+<a href="https://www.sciencedirect.com/science/article/pii/S0165027017301218">Automating mouse weighing in group homecages with Raspberry Pi micro-computers. Omid Noorshams Jamie D. Boyd, and Timothy H. Murphy: Journal of Neuroscience Methods, 2017 Jun 15;285:1-5.</a> This is an improved version of the software used in the paper. There is a <a href="https://www.youtube.com/watch?v=cj43hAdYo34">youTube movie</a> demonstrating the electronics setup. The STL files included here were created by Omid Noorshams and are for 3D printing of a tunnel that rests on the load cell and related couplers, plus a holder for an ID-20LA. Their use is explained in the paper.
+
+<h3>Installation</h3>
+AutoMouseWeight uses the HX711 C++ Python module from <a href="https://github.com/jamieboyd/GPIO_Thread">GPIO_Thread</a> and <a href="https://github.com/jamieboyd/RFIDTagReader">RFIDTagReader</a>.</p>
+Install the HX711 module. This includes a C module, so you will need the python development library. The GPIO_Thread uses the <a href="https://github.com/jamieboyd/pulsedThread">pulsedThread library</a> so you will need to install this as well.
+<ol><li>sudo apt-get install python3-dev</li>
+	<li>git clone https://githib.com/jamieboyd/pulsedThread</li>
+	<li>cd pulsedThread</li>
+	<li>make</li>
+	<li>sudo make install</li>
+</ol>
+This installs the pulsedThread library.</p>
+<ol>
+	<li>git clone https://githib.com/jamieboyd/GPIO_Thread</li>
+	<li>cd GPIO_Thread</li>
+	<li>sudo python3 HX711_setup.py install</li></ol>
+This installs the c++ module HX711 plus a pure Python module, Scale, that wraps the HX711 in a Python class.</p>
+
+Install RFIDTagReader:
+<ol><li>git clone https://githib.com/jamieboyd/RFIDTagReader</li>
+	<li>cd RFIDTagReader</li>
+	<li>sudo python3 RFIDTagReader_setup.py install</li></ol>
+This installs the RFIDTagReader Python module.
+
+<h3>Settings From Constants</h3>
+At the top of AutoMouseWeight.py are some constants that need to be set before running the program.</p>
+<table cellspacing="0" cellpadding="0" border = "1">
+	<caption>Settings for Running the Program</caption>
+<tbody>
+	<tr>
+	      <td>kCAGE_NAME</td>
+	      <td>cage name will be included in the name of the data files printed by AutoMouseWeight</td>
+	</tr>
+	<tr>
+		<td>kCAGE_PATH</td>
+		<td>The file path where data files from each day will be saved</td>
+	</tr>
+	<tr>
+		<td>kDAYSTARTHOUR</td>
+		<td>The hour when a new file is created. Use 0 to start the file for each day at 12 midnight. Set to 7 to synch files to mouse day/night cycle. Set to 13 to do the file turnaround in the quiet of the afternoon</td>
+	</tr>
+	<tr>
+		<td>kTIMEOUTSECS</td>
+		<td>time in seconds to sleep in each pass through loop while witing for the RFID reader. 0.05 is fine</td>
+	</tr>
+	<tr>
+		<td>kTHREADARRAYSIZE</td>
+		<td>size of array used for threaded reading from load cell amplifier. The HX711 reads at 10 Hz so 200 points will record for 20 seconds. Mice typically pass through the weighing chamber within this time</td>
+	</tr>
+	<tr>
+		<td>kMINWEIGHT</td>
+		<td>cut off weight where we stop the scale from reading one it has dipped below</td>
+	</tr>
+</tbody>
+</table>
+</p>
+
+<table cellspacing="0" cellpadding="0" border = "1">
+	<caption>Settings for GPIO pin numbers and scaling for HX711</caption>
+<tbody>
+	<tr>
+	      <td>kDATA_PIN</td>
+		  <td>The GPIO pin which is connected to the data pin of the HX711</td>
+	  </tr>
+	  <tr>
+		  <td>kCLOCK_IN</td>
+		  <td>The GPIO pin which is connected to the clock pin of the HX711</td>
+	  </tr>
+	  <tr>
+		  <td>kGRAMS_PER_UNIT</td>
+		  <td>Scaling of the load cell, in grams per raw A/D unit. For our setup, this was 7.14e-05</td>
+	  </tr>
+	  <tr>
+		  <td>kSERIAL_PORT</td>
+		  <td> The serial port used for the tag reader. Usually '/dev/serial0'</td>
+	  </tr>
+	  <tr>
+		  <td>kTIR_PIN</td>
+		  <td>The GPIO pin which is connected to the Tag-In-Range pin of the Tag Reader</td>
+	  </tr>
+</tbody>
+</table>
+Note that the code as written only works with ID tag readers not RDM readers because of the reliance on the Tag-In-Range Pin which is used to generate an interrupt.</p>
+
+<table cellspacing="0" cellpadding="0" border = "1">
+	<caption>Constants for how data is saved</caption>
+<tbody>
+	<tr>
+	      <td>kSAVE_DATA_LOCAL = 1</td>
+	      <td>Data is saved locally as specified by kDATA_PATH and kCAGE_NAME</td>
+	</tr>
+	<tr>
+	      <td>kSAVE_DATA_REMOTE = 2</td>
+	      <td>Data is sent to a remote server for analysis and display</td>
+	</tr>
+	<tr>
+		<td>kSAVE_DATA</td>
+		<td>Set this to a bit-wise combination of kSAVE_DATA_LOCAL and kSAVE_DATA_REMOTE</td>
+	</tr>
+</tbody>
+</table>
+Work is in progress for sending data to a remote server for analysis and display on a web page. For now, always set kSAVE_DATA to kSAVE_DATA_LOCAL</p>
+
+<h3>Running AutoMouseWeight</h3>
+Upon being started, AutoMouseWeight tares the scale, and opens a binary data file named for cage name and date. The program then loops forever collecting weight data whenever a tag is read by the Tag Reader. The program will close the existing file and start a new data file every 24 hours, synched to the kDAYSTARTHOUR constant. It can run constantly for many days at a time.</p>
+
+The basic program flow is as follows. Whenever a tag is read by the tag reader, the program records the tag ID number and the time, and starts the scale collecting weight data as fast as it can. This is done on a separate thread from the main program in C module. The scale keeps reading weights into the array until the array is full, or until the tag goes out of range and the scale reads leads than kMINWEIGHT, or until a different tag is read by the tag reader. The tag ID and the time stamp are then printed to the data file, followed by the contents of the data array up to the point where the scale was stopped.</p>
+
+The collection of data can be interrupted with ctrl-c. This brings up the ScaleRunner function which presents a text based menu with the following options:
+<ol><li>Tare the scale with average of 10 readings</li>
+<li>Weigh once</li>
+<li>Weigh 10 times and print the average weight</li>
+<li>Set the scale to low power mode</li>
+<li>Wake the scale from low power mode</li>
+<li>Test the threaded read</li>
+<li>Exit the ScaleRunner and return to collecting weight data</li>
+<li>Quit the AutoMouseWeight program</li></ol>
+
+This can be used for testing the scale at any time. It may be useful to tare the scale from time to time. With mice, for instance, bits of bedding may be deposited in the scale chamber. Taring the scale at the start of every day could be added to the program. Selecting 6 will quit the scaleRunner function and return to collecting weight data. Selecting 7 will exit the AutoMouseWeight program, first closing the currently open data file.</p>
+
+<h3>AutoMouseWeight Data</h3>
+Data files are in binary 32 bit floating point format. Weight data is written to the file as grams. Each run of weight data is prefaced by:
+1) the last 6 digits of the RFID code, as a negative value to make it easy for analysis code to find the start of each run. Only the last 6 digits are written because that is the limit of the precision of a 32 bit floating point value. In practice, this limit has not proved to be a problem. 
+2) the time in seconds since the start of the day, as set by the kDAYSTARTHOUR constant.</p>
+
+AutoMouseWeight Data files are named with kCAGE_NAME_4 Digit year_2 Digit Month_2 Digit Day, e.g., cage1_2017_06_04, and are saved in the location specified by kCAGE_PATH.
+
+<h3>AutoMouseWeight Data Analysis</h3>
+A second Python script, OneDayWeights.py, is included with AutoMouseWeight. 
+If kSAVE_DATA_LOCAL is set in kSAVE_DATA, the file OneDayWeights.py is included.
+</body>
+</html>
