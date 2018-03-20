@@ -11,9 +11,9 @@ kN_SMOOTH = 5 # number of times the smoothing kernel is applied to the derivariv
 
 # constants used for emailing weights to interested parties.
 # could improve this by comparing to baseline weights, alerting if current wt has decreased by x% from baseline
-kFROMADDRESS = 'arumurphymice'
-kPASSWORD = 'aru-murphy-mice'
-kRECIPIENTS = ['matilde.balbi@ubc.ca','mvanni76gmail.com','jadobo@gmail.com']
+kFROMADDRESS = ''
+kPASSWORD = ''
+kRECIPIENTS = ['','','']
 kSERVER= 'smtp.gmail.com:587'
 
 
