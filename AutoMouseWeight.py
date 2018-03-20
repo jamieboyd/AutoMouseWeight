@@ -131,9 +131,10 @@ def main():
             A Tag has been read. Fill the metaData array and tell the C++ thread to start
             recording weights
             """
-            #scale.turnOn()
+            
             thisTag = tag
             print ('mouse = ', thisTag)
+            #scale.turnOn()
             metaData [0]= -(thisTag%100000)
             metaData[1]=time()-startSecs
             scale.threadStart (scale.arraySize)
