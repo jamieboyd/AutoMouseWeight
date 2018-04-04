@@ -11,11 +11,10 @@ kN_SMOOTH = 5 # number of times the smoothing kernel is applied to the derivariv
 
 # constants used for emailing weights to interested parties.
 # could improve this by comparing to baseline weights, alerting if current wt has decreased by x% from baseline
-kFROMADDRESS = ''
-kPASSWORD = ''
-kRECIPIENTS = ['','','']
+kFROMADDRESS = 'arumurphymice'
+kPASSWORD = 'aru-murphy-mice'
+kRECIPIENTS = ['jadobo@gmail.com','matilde.balbi@ubc.ca','mvanni76@gmail.com']
 kSERVER= 'smtp.gmail.com:587'
-
 
 def get_day_weights (folder_path, cageName, date_year, date_month, date_day, output_path, doPlots, sendMail):
     # ensure paths end in forward slash, but don't add a second forward slash

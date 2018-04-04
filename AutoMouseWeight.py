@@ -163,13 +163,11 @@ def main():
         except KeyboardInterrupt:
             #scale.turnOn()
             event = scale.scaleRunner ('\n7 to quit AutoMouseWeight program\n:')
-            if event ==6:
-                break
-            elif event == 7:
+            if event == 7:
                 if kSAVE_DATA & kSAVE_DATA_LOCAL:
                     outFile.close()
                 GPIO.cleanup()
-            return
+                return
         except Exception as error:
             print("Closing file...")
             outFile.close()
