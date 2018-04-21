@@ -98,10 +98,10 @@ def main():
             kSERIAL_PORT = input ('Enter the name of serial port used for tag reader,e.g. serial0 or ttyAMA0:')
             kTIR_PIN = int (input ('Enter number of the GPIO pin connected to the Tag-In-Range pin on the RFID reader:'))
             kSAVE_DATA = int (input ('To save data locally, enter 1; to send data to a server, not yet supported, enter 2:'))
-            tempInput = input ('Email weights (Y or N):')
-                self.hasUDP = bool(tempInput [0] == 'y' or tempInput [0] == 'Y')
-            kEMAIL_WEIGHTS = bool (input('Email daily weights to 
+            tempInput = input ('Email weights every day (Y or N):')
+            kEMAIL_WEIGHTS = bool(tempInput [0] == 'y' or tempInput [0] == 'Y')
 
+            
             self.phoneList =tuple (input('Phone numbers to receive a text message if mouse is in chamber too long:').split(','))
             fp.write (json.dumps (jsonDict, sort_keys = True, separators=('\r\n', ':')))
             
