@@ -15,39 +15,24 @@ from array import array
 from time import time, sleep
 from datetime import date, datetime, timedelta
 
-# Constants for saving data
-kCAGE_NAME = 'cage_2'   # cage name, to tell data from different cages 
-kCAGE_PATH = '/home/pi/Documents/AutoMouseWeight_Data/' # path where data from each day will be saved
 
-kDAYSTARTHOUR = 13 # 0 to start the file for each day at 12 midnight. Could set to 7 to synch files to mouse day/night cycle
-kTIMEOUTSECS=0.05 #time to sleep in each pass through loop while witing for RFID reader
-kTHREADARRAYSIZE = 200 # size of array used for threaded reading from load cell amplifier
-kMINWEIGHT = 2 # cuttoff weight where we stop the thread from reading
-
-# Constants for GPIO pin numbers and scaling for HX711, adjust as required for individual setup
-kDATA_PIN=22
-kCLOCK_PIN=27
-kGRAMS_PER_UNIT=7.14e-05
+kTIMEOUTSECS= 0.05 #time to sleep in each pass through loop while witing for RFID reader
 
 """
-constants for RFID Reader, adjust as required. Note that code as written only works with ID tag readers
-not RDM readers because of reliance on Tag-In-Range Pin for interrupt
-"""
-kSERIAL_PORT = '/dev/serial0'
-kTIR_PIN =17
-
-# RFID reader object and tag need to be global so we can access them easily from Tag-In-Range calback
-tagReader = RFIDTagReader(kSERIAL_PORT, doChecksum = False, timeOutSecs = 0.1, kind='ID')
-tag =0
-
-"""
-define constants for where data is saved. Work is in progress for sending data to a remote server for
-analysis and display on a web page. For now, always set kSAVE_DATA to kSAVE_DATA_LOCAL
+readibility constants for where data is saved. Work is in progress for sending data
+to a remote server for analysis and display on a web page. For now, always
+set kSAVE_DATA to kSAVE_DATA_LOCAL
 """
 kSAVE_DATA_LOCAL =1
 kSAVE_DATA_REMOTE =2
-kSAVE_DATA = kSAVE_DATA_LOCAL
-kEMAIL_WEIGHTS = True # if true, and kSAVE_DATA_LOCAL is set, results for each day will be emailed to kRECIPIENTS list in One_Day_weights.py
+
+"""
+RFID reader object and tag need to be global so we can access them
+easily from Tag-In-Range calback
+"""
+tagReader=None
+tag =0
+
 """
 Threaded call back function on Tag-In-Range pin
 Updates tag global variable whenever Tag-In-Range pin toggles
@@ -55,6 +40,7 @@ Setting tag to 0 means no tag is presently in range
 """
 def tagReaderCallback (channel):
     global tag # the global indicates that it is the same variable declared above and also used by main loop
+    global tagReader
     if GPIO.input (channel) == GPIO.HIGH: # mouse just entered
         tag = tagReader.readTag ()
     else:  # mouse just left
@@ -62,7 +48,63 @@ def tagReaderCallback (channel):
 
 
 def main():
+    """
+    Read in settings from AMW_config.jsn. If we don't find the file, make it.
+    Note that we save the file with new line as a separator, but can't load it with a non-standard separator,
+    so we replace new lines with  commas, he default separator character
+    
+    """
+    try:
+        with open ('AMW_config.jsn', 'r') as fp:
+            data = fp.read()
+            data = data.replace('\n', ',')
+            configDict = json.loads(data)
+            fp.close()
+            # Constants for saving data
+            # cage name, to tell data from different cages 
+            kCAGE_NAME = configDict.get ('Cage Name')
+            # path where data from each day will be saved
+            kCAGE_PATH = configDict.get ('Data Path')
+            # rollover time, 0 to start the file for each day at 12 midnight. Could set to 7 to synch files to mouse day/night cycle
+            kDAYSTARTHOUR = configDict.get ('Day Start Hour')
+            # size of array used for threaded reading from load cell amplifier
+            kTHREADARRAYSIZE = configDict.get ('Thread Array Size')
+            # cuttoff weight where we stop the thread from reading when a mouse steps away
+            kMINWEIGHT = configDict.get ('Minimum Weight')
+            # GPIO pin numbers and scaling for HX711, adjust as required for individual setup
+            kDATA_PIN= configDict.get ('GPIO Data Pin')
+            kCLOCK_PIN=configDict.get ('GPIO Clock Pin')
+            kGRAMS_PER_UNIT=configDict.get ('Grams Per Unit')
+            # RFID Reader. Note that code as written only works with ID tag readers not RDM readers because of reliance on Tag-In-Range Pin
+            kSERIAL_PORT = configDict.get ('Serial Port')
+            kTIR_PIN = configDict.get ('GPIO Tag In Range Pin')
+            #whether data is saved locally or, not yet supported, sent to a server
+            kSAVE_DATA = configDict.get ('Data Save Options')
+            # can call get day weights code and email weights, needs extra options
+            kEMAIL_WEIGHTS = configDict.get ('Email Weights') 
+            if kEMAIL_WEIGHTS:
+                
+    except (TypeError, IOError) as e:
+            #we will make a file if we didn't find it, or if it was incomplete
+            print ('Unable to open configuration file, AMW_config.jsn, let\'s make a new one.\n')
+            kCAGE_NAME = input('Enter the cage name, used to distinguish data from different cages:')
+            kCAGE_PATH = input ('Enter the path where data from each day will be saved:')
+            kDAYSTARTHOUR = int (input ('Enter the rollover hour, in 24 hour format, when a new data file is started:'))
+            kTHREADARRAYSIZE = int (input ('Enter size of array used for threaded reading from Load Cell'))
+            kMINWEIGHT = float (input ('Enter cuttoff weight where we stop the thread from reading:'))
+            kDATA_PIN=  int (input ('Enter number of GPIO pin connected to data pin on load cell:'))
+            kCLOCK_PIN = int (input ('Enter number of GPIO pin connected to clock pin on load cell:'))
+            kGRAMS_PER_UNIT = float (input('Enter the scaling of the load cell, in grams per A/D unit:'))
+            kSERIAL_PORT = input ('Enter the name of serial port used for tag reader,e.g. serial0 or ttyAMA0:')
+            kTIR_PIN = int (input ('Enter number of the GPIO pin connected to the Tag-In-Range pin on the RFID reader:'))
+            kSAVE_DATA = int (input ('To save data locally, enter 1; to send data to a server, not yet supported, enter 2:'))
+            tempInput = input ('Email weights (Y or N):')
+                self.hasUDP = bool(tempInput [0] == 'y' or tempInput [0] == 'Y')
+            kEMAIL_WEIGHTS = bool (input('Email daily weights to 
 
+            self.phoneList =tuple (input('Phone numbers to receive a text message if mouse is in chamber too long:').split(','))
+            fp.write (json.dumps (jsonDict, sort_keys = True, separators=('\r\n', ':')))
+            
     """
     Initialize the scale from variables listed above and do an initial taring
     of the scale with 10 reads. Because pins are only accessed from C++, do not call
@@ -72,9 +114,12 @@ def main():
     scale.weighOnce ()
     scale.tare(10, True)
     """
-    Setup GPIO for TIR pin, with tagReaderCallback installed as
+    Setup tag reader and GPIO for TIR pin, with tagReaderCallback installed as
     an event callback when pin changes either from low-to-high, or from high-to-low.
     """
+    global tag # the global indicates that it is the same variable declared above and also used by the callback
+    global tagReader
+    tagReader = RFIDTagReader('/dev/' + kSERIAL_PORT, doChecksum = False, timeOutSecs = 0.1, kind='ID')
     GPIO.setmode (GPIO.BCM)
     GPIO.setwarnings(False)
     GPIO.setup (kTIR_PIN, GPIO.IN)
@@ -103,7 +148,6 @@ def main():
     Both data items have been selected to fit into a 32 bit float.
     """
     metaData = array ('f', [0,0])
-    global tag #tag variable is global indicating that it is the same variable that is changed by TagReader callback
     tag = 0
     
     while True:
