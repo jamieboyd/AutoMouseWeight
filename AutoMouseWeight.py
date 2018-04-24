@@ -8,13 +8,14 @@ Designed for mice, but it could be used for anything that can move and carry an 
 Last Modified:
 2018/03/07 by Jamie Boyd - cleaned up a bit, added some comments
 """
+
 from RFIDTagReader import RFIDTagReader
 from Scale import Scale
 import RPi.GPIO as GPIO
 from array import array
 from time import time, sleep
 from datetime import date, datetime, timedelta
-
+import json
 
 kTIMEOUTSECS= 0.05 #time to sleep in each pass through loop while witing for RFID reader
 
@@ -83,10 +84,13 @@ def main():
             # can call get day weights code and email weights, needs extra options
             kEMAIL_WEIGHTS = configDict.get ('Email Weights') 
             if kEMAIL_WEIGHTS:
-                
-    except (TypeError, IOError) as e:
+                kFROMADDRESS = configDict.get ('Email From Address')
+                kRECIPIENTS = configDict.get ('Email Recipients')
+                kPASSWORD = configDict.get ('Email Password')
+                kSERVER = configDict.get ('Email Server')
+    except (TypeError, IOError, ValueError) as e:
             #we will make a file if we didn't find it, or if it was incomplete
-            print ('Unable to open configuration file, AMW_config.jsn, let\'s make a new one.\n')
+            print ('Unable to load configuration data from AMW_config.jsn, let\'s make a new AMW_config.jsn.\n')
             kCAGE_NAME = input('Enter the cage name, used to distinguish data from different cages:')
             kCAGE_PATH = input ('Enter the path where data from each day will be saved:')
             kDAYSTARTHOUR = int (input ('Enter the rollover hour, in 24 hour format, when a new data file is started:'))
@@ -98,13 +102,22 @@ def main():
             kSERIAL_PORT = input ('Enter the name of serial port used for tag reader,e.g. serial0 or ttyAMA0:')
             kTIR_PIN = int (input ('Enter number of the GPIO pin connected to the Tag-In-Range pin on the RFID reader:'))
             kSAVE_DATA = int (input ('To save data locally, enter 1; to send data to a server, not yet supported, enter 2:'))
-            tempInput = input ('Email weights every day (Y or N):')
+            tempInput = input ('Email weights every day ? (Y or N):')
             kEMAIL_WEIGHTS = bool(tempInput [0] == 'y' or tempInput [0] == 'Y')
-
-            
-            self.phoneList =tuple (input('Phone numbers to receive a text message if mouse is in chamber too long:').split(','))
-            fp.write (json.dumps (jsonDict, sort_keys = True, separators=('\r\n', ':')))
-            
+            # add info to a dictionay we will write to file
+            jsonDict={'Cage Name':kCAGE_NAME, 'Data Path':kCAGE_PATH, 'Day Start Hour':kDAYSTARTHOUR, 'Thread Array Size':kTHREADARRAYSIZE}
+            jsonDict.update ({'Minimum Weight':kMINWEIGHT, 'GPIO Data Pin': kDATA_PIN, 'GPIO Clock Pin':kCLOCK_PIN})
+            jsonDict.update ({'GPIO Tag In Range Pin':kTIR_PIN, 'Grams Per Unit':kGRAMS_PER_UNIT, 'Serial Port':kSERIAL_PORT})
+            jsonDict.update ({'Data Save Options':kSAVE_DATA, 'Email Weights':kEMAIL_WEIGHTS})
+            if kEMAIL_WEIGHTS:
+                kFROMADDRESS = input ('Enter the account used to send the email with  weight data:')
+                kPASSWORD = input ('Enter the password for the email account used to send the mail:')
+                kSERVER = input ('Enter the name of the email server and port number, e.g., smtp.gmail.com:87, with separating colon:')
+                kRECIPIENTS = tuple (input('Enter comma-separated list of email addresses to get the daily weight email:').split(','))
+                jsonDict.update ({'Email From Address':kFROMADDRESS, 'Email Recipients':kRECIPIENTS})
+                jsonDict.update ({'Email Password':kPASSWORD, 'Email Server': kSERVER})
+            with open ('AMW_config.jsn', 'w') as fp:
+                fp.write (json.dumps (jsonDict, sort_keys = True, separators=('\r\n', ':')))
     """
     Initialize the scale from variables listed above and do an initial taring
     of the scale with 10 reads. Because pins are only accessed from C++, do not call
@@ -175,7 +188,6 @@ def main():
             A Tag has been read. Fill the metaData array and tell the C++ thread to start
             recording weights
             """
-            
             thisTag = tag
             print ('mouse = ', thisTag)
             #scale.turnOn()
