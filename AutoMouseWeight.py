@@ -16,7 +16,7 @@ from time import time, sleep
 from datetime import date, datetime, timedelta
 
 # Constants for saving data
-kCAGE_NAME = 'cage_0'   # cage name, to tell data from different cages 
+kCAGE_NAME = 'cage_2'   # cage name, to tell data from different cages 
 kCAGE_PATH = '/home/pi/Documents/AutoMouseWeight_Data/' # path where data from each day will be saved
 
 kDAYSTARTHOUR = 13 # 0 to start the file for each day at 12 midnight. Could set to 7 to synch files to mouse day/night cycle
@@ -27,7 +27,7 @@ kMINWEIGHT = 2 # cuttoff weight where we stop the thread from reading
 # Constants for GPIO pin numbers and scaling for HX711, adjust as required for individual setup
 kDATA_PIN=17
 kCLOCK_PIN=27
-kGRAMS_PER_UNIT=7.14e-05
+kGRAMS_PER_UNIT=6.5829e-05
 
 """
 constants for RFID Reader, adjust as required. Note that code as written only works with ID tag readers
@@ -47,7 +47,7 @@ analysis and display on a web page. For now, always set kSAVE_DATA to kSAVE_DATA
 kSAVE_DATA_LOCAL =1
 kSAVE_DATA_REMOTE =2
 kSAVE_DATA = kSAVE_DATA_LOCAL
-
+kEMAIL_WEIGHTS = True # if true, and kSAVE_DATA_LOCAL is set, results for each day will be emailed to kRECIPIENTS list in One_Day_weights.py
 """
 Threaded call back function on Tag-In-Range pin
 Updates tag global variable whenever Tag-In-Range pin toggles
@@ -117,7 +117,7 @@ def main():
                     if kSAVE_DATA & kSAVE_DATA_LOCAL:
                         outFile.close()
                         print ('save data date =', startDay.year, startDay.month, startDay.day)
-                        get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, True)
+                        get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, kEMAIL_WEIGHTS)
                     startDay = nextDay
                     nextDay = startDay + timedelta (hours=24)
                     startSecs =startDay.timestamp()
@@ -131,9 +131,10 @@ def main():
             A Tag has been read. Fill the metaData array and tell the C++ thread to start
             recording weights
             """
-            #scale.turnOn()
+            
             thisTag = tag
             print ('mouse = ', thisTag)
+            #scale.turnOn()
             metaData [0]= -(thisTag%100000)
             metaData[1]=time()-startSecs
             scale.threadStart (scale.arraySize)
@@ -171,6 +172,7 @@ def main():
         except Exception as error:
             print("Closing file...")
             outFile.close()
+            GPIO.cleanup()
             raise error
 
 
