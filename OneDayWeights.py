@@ -2,11 +2,12 @@
 # -*-coding: UTF-8 -*-
 from array import array
 import numpy as np
+import json
 
 kMIN_WEIGHT = 15.5 # weights below this value are excluded
 kMAX_WEIGHT = 40.5 # weights above this value are excluded
 kHIST_BINSIZE = 0.1 # width of the bins in the cumulative histogram, in grams
-kKERNEL_WIDTH = 17 # widht of the smoothing kernel used for the derivative of the histogram
+kKERNEL_WIDTH = 17 # width of the smoothing kernel used for the derivative of the histogram
 kN_SMOOTH = 5 # number of times the smoothing kernel is applied to the derivarive
 
 # constants used for emailing weights to interested parties.
@@ -30,11 +31,16 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
         try:
             data.frombytes (binaryFile.read())
         except ValueError as e:
-            return
+            raise e
     # import matplotlib for making plots
     if doPlots:
         import matplotlib.pyplot as plt
     if sendMail:
+        with open ('AMW_config.jsn', 'r') as fp:
+            data = fp.read()
+            configDict = json.loads(data)
+            fp.close()
+            kFROMADDRESS = int(configDict.get('Mail From Addr'))
         import smtplib
         from email.mime.text import MIMEText
         SUBJECT = 'Weights for ' + cageName + ' on ' + str (date_year) + '/' + '{:02}'.format(date_month)  + '/' + '{:02}'.format (date_day)
