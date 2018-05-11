@@ -33,89 +33,95 @@ Install RFIDTagReader:
 	<li>sudo python3 RFIDTagReader_setup.py install</li></ol>
 This installs the RFIDTagReader Python module.
 
-<h3>Settings From Constants</h3>
-At the top of AutoMouseWeight.py are some constants that need to be set before running the program.<br>
+<h3>Settings From JSON file</h3>
+There are some settings that need to be configured before running the program. These used to be set in the Python file itself, but have been moved into a JSON styled text file. When the program is launched, it will look for a file named AMW_config.jsn in the current directory, and load the constants from there. If the file can not be loaded completely, a new set of constants will be created by querying the user, and these will be saved to AMW_config.jsn.  A file named Copy_to_AMW_config.jsn contains a sample configuration file, which you can, as indicated, copy to AMW_config.jsn and manually edit. Don't edit Copy_to_AMW_config.jsn because if it is under GIT version control you would lose your changes if you updated the program with git pull. The contents of AMW_config.jsn are:<br>
 <table cellspacing="0" cellpadding="0" border = "1">
-	<caption>Settings for Running the Program</caption>
+	<caption>1. Hardwre Settings for HX711 and RFID Reader</caption>
 <tbody>
 	<tr>
-	      <td>kCAGE_NAME</td>
-	      <td>cage name will be included in the name of the data files printed by AutoMouseWeight</td>
-	</tr>
-	<tr>
-		<td>kCAGE_PATH</td>
-		<td>The file path where data files from each day will be saved</td>
-	</tr>
-	<tr>
-		<td>kDAYSTARTHOUR</td>
-		<td>The hour when a new file is created. Use 0 to start the file for each day at 12 midnight. Set to 7 to synch files to mouse day/night cycle. Set to 13 to do the file turnaround in the quiet of the afternoon</td>
-	</tr>
-	<tr>
-		<td>kTIMEOUTSECS</td>
-		<td>time in seconds to sleep in each pass through loop while witing for the RFID reader. 0.05 is fine</td>
-	</tr>
-	<tr>
-		<td>kTHREADARRAYSIZE</td>
-		<td>size of array used for threaded reading from load cell amplifier. The HX711 reads at 10 Hz so 200 points will record for 20 seconds. Mice typically pass through the weighing chamber within this time</td>
-	</tr>
-	<tr>
-		<td>kMINWEIGHT</td>
-		<td>cut off weight where we stop the scale from reading one it has dipped below</td>
-	</tr>
-</tbody>
-</table>
-<br>
-
-<table cellspacing="0" cellpadding="0" border = "1">
-	<caption>Settings for GPIO pin numbers and scaling for HX711</caption>
-<tbody>
-	<tr>
-	      <td>kDATA_PIN</td>
+	      <td>GPIO Data Pin</td>
 		  <td>The GPIO pin which is connected to the data pin of the HX711</td>
 	  </tr>
 	  <tr>
-		  <td>kCLOCK_IN</td>
+		  <td>GPIO Clock Pin</td>
 		  <td>The GPIO pin which is connected to the clock pin of the HX711</td>
 	  </tr>
 	  <tr>
-		  <td>kGRAMS_PER_UNIT</td>
+		  <td>Grams per Unit</td>
 		  <td>Scaling of the load cell, in grams per raw A/D unit. For our setup, this was 7.14e-05</td>
 	  </tr>
 	  <tr>
-		  <td>kSERIAL_PORT</td>
-		  <td> The serial port used for the tag reader. Usually '/dev/serial0'</td>
+		  <td>Serial Port</td>
+		  <td> The serial port used for the tag reader. Usually 'serial0'</td>
 	  </tr>
 	  <tr>
-		  <td>kTIR_PIN</td>
-		  <td>The GPIO pin which is connected to the Tag-In-Range pin of the Tag Reader</td>
+		  <td>GPIO Tag in Range Pin</td>
+		  <td>The GPIO pin which is connected to the Tag-In-Range pin of the Tag Reader. Note that the code as written only works with ID tag readers not RDM readers because of the reliance on the Tag-In-Range Pin to generate an interrupt.
+</td>
 	  </tr>
 </tbody>
 </table>
 <br>
-Note that the code as written only works with ID tag readers not RDM readers because of the reliance on the Tag-In-Range Pin which is used to generate an interrupt.<br>
 
 <table cellspacing="0" cellpadding="0" border = "1">
-	<caption>Constants for how data is saved</caption>
+	<caption>2. Data Management</caption>
 <tbody>
 	<tr>
-	      <td>kSAVE_DATA_LOCAL = 1</td>
-	      <td>Data is saved locally as specified by kDATA_PATH and kCAGE_NAME</td>
+		<td>Data Save Options</td>
+		<td>Set this to a bit-wise combination of kSAVE_DATA_LOCAL=1, to save data on the local machine,  and kSAVE_DATA_REMOTE=2, to POST data to a remote server where it can be crucnhed and displayed on a web page as it is acquired. The server code is not ready yet, so unless you write it yourself, stick with kSAVE_DATA_LOCAL.</td>
 	</tr>
 	<tr>
-	      <td>kSAVE_DATA_REMOTE = 2</td>
-	      <td>Data is sent to a remote server for analysis and display</td>
+	      <td>Cage Name</td>
+	      <td>cage name will be included in the name of the data files printed by AutoMouseWeight</td>
 	</tr>
 	<tr>
-		<td>kSAVE_DATA</td>
-		<td>Set this to a bit-wise combination of kSAVE_DATA_LOCAL and kSAVE_DATA_REMOTE</td>
+		<td>Data Path</td>
+		<td>The file path where data files from each day will be saved</td>
 	</tr>
 	<tr>
-		<td>kEMAIL_WEIGHTS</td>
-		<td>if true, and kSAVE_DATA_LOCAL is set, results for each day will be emailed to kRECIPIENTS list in One_Day_weights.py</td>
+		<td>Day Start Hour</td>
+		<td>The hour when a new file is created. Use 0 to start the file for each day at 12 midnight. Set to 7 to synch files to mouse day/night cycle. Set to 13 to do the file turnaround in the quiet of the afternoon</td>
+	</tr>
+	<tr>
+		<td>Email Weights</td>
+		<td>if true, and Data Save Options is set to kSAVE_DATA_LOCAL , results for each day will be emailed as described below</td>
+	</tr>
+	<tr>
+		<td>Email From Address</td>
+		<td>The account used to send the email</td>
+	</tr>
+	<tr>
+		<td>Email Password</td>
+		<td>Password for the account used to send the email. Stored in plain text, so maybe use a dedicated account</td>
+	</tr>
+	<tr>
+		<td>Email Recipients</td>
+		<td>list of email addresses to receive the emails</td>
+	</tr>
+	<tr>
+		<td>Email Server</td>
+		<td>Server used to send email, with port number, e.g., smtp.gmail.com:87</td>
+	<tr>
+</tbody>
+</table>
+</br>
+
+<table cellspacing="0" cellpadding="0" border = "1">
+	<caption>3. Other Program Settings</caption>
+<tbody>
+	<tr>
+		<td>Thread Array Size</td>
+		<td>size of array used for threaded reading from load cell amplifier. The HX711 reads at 10 Hz so 200 points will record for 20 seconds. Mice typically pass through the weighing chamber within this time</td>
+	</tr>
+	<tr>
+		<td>Minimum Weight</td>
+		<td>cut off weight where we stop the scale from reading once it has dipped below</td>
 	</tr>
 </tbody>
 </table>
-<br>Work is in progress for sending data to a remote server for analysis and display on a web page. For now, always set kSAVE_DATA to kSAVE_DATA_LOCAL
+<br>
+
+
 
 <h3>Running AutoMouseWeight</h3>
 Upon being started, AutoMouseWeight tares the scale, and opens a binary data file named for cage name and date. The program then loops forever collecting weight data whenever a tag is read by the Tag Reader. The program will close the existing file and start a new data file every 24 hours, synched to the kDAYSTARTHOUR constant. It can run constantly for many days at a time.<br>
@@ -203,14 +209,7 @@ The analysis used in OneDayWeights.py is quite simple, based on finding the most
 </tbody>
 </table>
 <h3>Emailing Results</h3>
-If the Pi recording weights is online, email containing the results for each day can be sent to to interested parties. Constants used for emailing weights are found at the top of OneDayWeights.py. Fill these in before running the program.<br>
-<ul><li>kFROMADDRESS -- The account used to do the mailing</li>
-	<li>kPASSWORD -- The password for the email account</li>
-	<li>kRECIPIENTS -- a list of email addresses, e.g., ['joesmith@company.com','janedoe@uni.ca']</li>
-	<li>kSERVER -- the server and port used for mailing, e.g., 'smtp.gmail.com:587'</li>
-</ul>
-<br>
-Note that the email password is saved as clear text, not encoded. You can make a separate gmail account for your AutoMouseWeight. The emailing code could be improved by comparing each mouse's weight to a baseline weight, and sending an email alert only if the current weight had decreased by some set percentage from baseline.<br>
+If the Pi recording weights is online, email containing the results for each day can be sent to to interested parties. Constants used for emailing weights are set from the AMW_config.jsn file. Fill these in before running the program. Note that the email password is saved as clear text, not encoded. You can make a separate gmail account for your AutoMouseWeight. The emailing code could be improved by comparing each mouse's weight to a baseline weight, and sending an email alert only if the current weight had decreased by some set percentage from baseline.<br>
 <h3>Running OneDayWeights Stand-Alone</h3>
 When run as a stand alone script, OneDayWeights.py repeatedly querries the user for a year, month, and date, and runs the get_day_weights function with other arguments set from constants in OneDayWeights.py:<br> 
 <ul><li>kDATA_FOLDER -- where input binary data files are located</li>

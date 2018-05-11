@@ -4,20 +4,14 @@ from array import array
 import numpy as np
 import json
 
+# constants for weight analysis
 kMIN_WEIGHT = 15.5 # weights below this value are excluded
 kMAX_WEIGHT = 40.5 # weights above this value are excluded
 kHIST_BINSIZE = 0.1 # width of the bins in the cumulative histogram, in grams
 kKERNEL_WIDTH = 17 # width of the smoothing kernel used for the derivative of the histogram
 kN_SMOOTH = 5 # number of times the smoothing kernel is applied to the derivarive
 
-# constants used for emailing weights to interested parties.
-# could improve this by comparing to baseline weights, alerting if current wt has decreased by x% from baseline
-kFROMADDRESS = 'arumurphymice'
-kPASSWORD = 'aru-murphy-mice'
-kRECIPIENTS = ['jadobo@gmail.com','matilde.balbi@ubc.ca','mvanni76@gmail.com']
-kSERVER= 'smtp.gmail.com:587'
-
-def get_day_weights (folder_path, cageName, date_year, date_month, date_day, output_path, doPlots, sendMail):
+def get_day_weights (folder_path, cageName, date_year, date_month, date_day, output_path, doPlots, emailDict):
     # ensure paths end in forward slash, but don't add a second forward slash
     if not folder_path.endswith ('/'):
         folder_path.append ('/')
@@ -35,31 +29,33 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
     # import matplotlib for making plots
     if doPlots:
         import matplotlib.pyplot as plt
-    if sendMail:
-        with open ('AMW_config.jsn', 'r') as fp:
-            data = fp.read()
-            configDict = json.loads(data)
-            fp.close()
-            kFROMADDRESS = int(configDict.get('Mail From Addr'))
-        import smtplib
-        from email.mime.text import MIMEText
-        SUBJECT = 'Weights for ' + cageName + ' on ' + str (date_year) + '/' + '{:02}'.format(date_month)  + '/' + '{:02}'.format (date_day)
-        def emailWeights (SUBJECT, file_name):
-            with open (file_name) as fp:
-                print ("get day weights filename to email = ", file_name)
-                msg = MIMEText(fp.read())
-                msg['Subject'] = SUBJECT
-                msg['From'] = kFROMADDRESS
-                # Send the mail
-                try:
+    sendMail = False
+    if emailDict is not None:
+        sendMail = True
+        try:
+            kFROMADDRESS = emailDict.get ('Email From Address')
+            kRECIPIENTS = emailDict.get ('Email Recipients')
+            kPASSWORD = emailDict.get ('Email Password')
+            kSERVER = emailDict.get ('Email Server')
+            import smtplib
+            from email.mime.text import MIMEText
+            SUBJECT = 'Weights for ' + cageName + ' on ' + str (date_year) + '/' + '{:02}'.format(date_month)  + '/' + '{:02}'.format (date_day)
+            def emailWeights (SUBJECT, file_name):
+                with open (file_name) as fp:
+                    print ("get day weights filename to email = ", file_name)
+                    msg = MIMEText(fp.read())
+                    msg['Subject'] = SUBJECT
+                    msg['From'] = kFROMADDRESS
+                    # Send the mail
                     server = smtplib.SMTP(kSERVER)
                     server.starttls()
                     server.login(kFROMADDRESS, kPASSWORD)
                     msg['To']= ', '.join(kRECIPIENTS)
                     server.sendmail(msg.get('From'), kRECIPIENTS, msg.as_string())
                     server.quit()
-                except Exception as e:
-                    print ("Email server failure")
+        except Exception as e:
+            print ("Emailing failed:" + str (e))
+            sendMail = False
     # dictionaries to store entries, arrays for weights, and prehaps indices of raw traces for each mouse
     #in each case keys are id_codes
     sorted_data = {}    # each value is array of all raw weigths for the mouse
@@ -161,11 +157,11 @@ Sample usage of the program
 
 if __name__ == '__main__':
     kDATA_FOLDER = '/home/pi/Documents/AutoMouseWeight_Data/'       #where data files are located
-    kOUTPUT_FOLDER = '/home/pi/Documents/AutoMouseWeight_Data/'     # where text fiels are saved
+    kOUTPUT_FOLDER = '/home/pi/Documents/AutoMouseWeight_Data/'     # where text files are saved
     kCAGE_NAME = 'cage_0'                                           # names of data files start with cage name
 
     kDO_PLOTS = False # program will stop and display plots of raw data and smoothed derivative
-    kSEND_MAIL = True # if true, email will be sent to user
+    kSEND_MAIL = None # make a dictionary with email adress and server info to send email, not likely if running standalone
 
     while True:
         year = 0

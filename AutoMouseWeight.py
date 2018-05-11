@@ -6,6 +6,7 @@ AutoMouseWeight program to automatically weigh RFID tagged individuals as they c
 HX711-based scale with an Innovations Design RFID Tag reader installed
 Designed for mice, but it could be used for anything that can move and carry an RFID tag
 Last Modified:
+2018/05/11 by Jamie Boyd - moved mose constants for settings into a JSON file
 2018/03/07 by Jamie Boyd - cleaned up a bit, added some comments
 """
 from RFIDTagReader import RFIDTagReader
@@ -81,12 +82,15 @@ def main():
             #whether data is saved locally or, not yet supported, sent to a server
             kSAVE_DATA = configDict.get ('Data Save Options')
             # can call get day weights code and email weights, needs extra options
-            kEMAIL_WEIGHTS = configDict.get ('Email Weights') 
-            if kEMAIL_WEIGHTS:
+            emailWeights = configDict.get ('Email Weights') 
+            if emailWeights:
                 kFROMADDRESS = configDict.get ('Email From Address')
                 kRECIPIENTS = configDict.get ('Email Recipients')
                 kPASSWORD = configDict.get ('Email Password')
                 kSERVER = configDict.get ('Email Server')
+                emailDict = {'Email From Address':kFROMADDRESS, 'Email Recipients':kRECIPIENTS, 'Email Password':kPASSWORD, 'Email Server':kSERVER}
+            else:
+                emailDict = None
     except (TypeError, IOError, ValueError) as e:
             #we will make a file if we didn't find it, or if it was incomplete
             print ('Unable to load configuration data from AMW_config.jsn, let\'s make a new AMW_config.jsn.\n')
@@ -173,7 +177,7 @@ def main():
                     if kSAVE_DATA & kSAVE_DATA_LOCAL:
                         outFile.close()
                         print ('save data date =', startDay.year, startDay.month, startDay.day)
-                        get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, kEMAIL_WEIGHTS)
+                        get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, emailDict)
                     startDay = nextDay
                     nextDay = startDay + timedelta (hours=24)
                     startSecs =startDay.timestamp()
