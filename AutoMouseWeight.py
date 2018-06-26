@@ -145,11 +145,11 @@ def main():
     A new binary data file is opened for each day, with a name containing the 
     current date, so open a file to start with
     """
-    now = datetime.fromtimestamp (int (time()))
+    now = datetime.fromtimestamp (time())
     startDay = datetime (now.year, now.month,now.day, kDAYSTARTHOUR,0,0)
     if startDay > now: # it's still "yesterday" according to kDAYSTARTHOUR definition of when a day starts
-        startDay = startDay + timedelta (hours=-24)
-    startSecs =startDay.timestamp() # used to report time of an entry through the weighing tube
+        startDay = startDay - timedelta (hours=24)
+    startSecs = startDay.timestamp() # used to report time of an entry through the weighing tube
     nextDay = startDay + timedelta (hours=24)
     filename = kCAGE_PATH + kCAGE_NAME + '_' + str (startDay.year) + '_' + '{:02}'.format(startDay.month)+ '_' + '{:02}'.format (startDay.day)
     if kSAVE_DATA & kSAVE_DATA_LOCAL:
@@ -194,7 +194,7 @@ def main():
             thisTag = tag
             print ('mouse = ', thisTag)
             #scale.turnOn()
-            metaData [0]= -(thisTag%100000)
+            metaData [0]= -(thisTag%1000000)
             metaData[1]=time()-startSecs
             scale.threadStart (scale.arraySize)
             nReads = scale.threadCheck()
