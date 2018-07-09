@@ -11,8 +11,8 @@
 <a href="https://www.sciencedirect.com/science/article/pii/S0165027017301218">Automating mouse weighing in group homecages with Raspberry Pi micro-computers. Omid Noorshams Jamie D. Boyd, and Timothy H. Murphy: Journal of Neuroscience Methods, 2017 Jun 15;285:1-5.</a> This is an improved version of the software used in the paper. There is a <a href="https://www.youtube.com/watch?v=cj43hAdYo34">youTube movie</a> demonstrating the electronics setup. The STL files included here were created by Omid Noorshams and are for 3D printing of a tunnel that rests on the load cell, related couplers, plus a holder for an ID-20LA. Their use is explained in the paper.</p>
 
 <h3>Installation</h3>
-<p>AutoMouseWeight uses the HX711 C++ Python module from <a href="https://github.com/jamieboyd/GPIO_Thread">GPIO_Thread</a> and <a href="https://github.com/jamieboyd/RFIDTagReader">RFIDTagReader</a>.<br>
-Install the HX711 module. This includes a C module, so you will need the python development library. The GPIO_Thread uses the <a href="https://github.com/jamieboyd/pulsedThread">pulsedThread library</a> so you will need to install this as well.<br>
+<p>AutoMouseWeight uses the HX711 Python/C module from <a href="https://github.com/jamieboyd/GPIO_Thread">GPIO_Thread</a> and <a href="https://github.com/jamieboyd/RFIDTagReader">RFIDTagReader</a>.</p>
+<p>To install the HX711 Python/Cmodule you will need the Python development library. The GPIO_Thread projects use the <a href="https://github.com/jamieboyd/pulsedThread">pulsedThread library</a> so you will need to install this as well.<br>
 <ol><li>sudo apt-get install python3-dev</li>
 	<li>git clone https://githib.com/jamieboyd/pulsedThread</li>
 	<li>cd pulsedThread</li>
@@ -24,9 +24,9 @@ This installs the pulsedThread library.
 	<li>git clone https://githib.com/jamieboyd/GPIO_Thread</li>
 	<li>cd GPIO_Thread</li>
 	<li>sudo python3 HX711_setup.py install</li></ol>
-This installs the c++ module HX711 plus a pure Python module, Scale, that wraps the HX711 in a Python class.<br>
+This installs the Python/C++ module HX711 plus a Python module, Scale, that wraps the HX711 in a Python class.</p>
 
-Install RFIDTagReader:
+<p>Install RFIDTagReader:
 <ol><li>git clone https://githib.com/jamieboyd/RFIDTagReader</li>
 	<li>cd RFIDTagReader</li>
 	<li>sudo python3 RFIDTagReader_setup.py install</li></ol>
@@ -142,7 +142,7 @@ This can be used for testing the scale at any time. It may be useful to tare the
 	<caption>A sample run of data</caption>
 <tbody>
 <tr><td>-50610</td><td>last 6 digits of RFID code</td></tr>
-<tr><td>1496304640</td><td>seconds since start of day</td></tr>
+<tr><td>1496304640&nbsp;</td><td>seconds since start of day</td></tr>
 <tr><td>12.725607</td><td>1st weight reading</td></tr>
 <tr><td>17.459797</td><td>2nd weight reading</td></tr>
 <tr><td>22.18738</td><td>3rd weight reading</td></tr>

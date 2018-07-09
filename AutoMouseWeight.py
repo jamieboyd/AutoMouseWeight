@@ -192,10 +192,11 @@ def main():
             recording weights
             """
             thisTag = tag
+            startTime =time()
             print ('mouse = ', thisTag)
             #scale.turnOn()
             metaData [0]= -(thisTag%100000)
-            metaData[1]=time()-startSecs
+            metaData[1]=startTime-startSecs
             scale.threadStart (scale.arraySize)
             nReads = scale.threadCheck()
             lastRead=0
@@ -216,14 +217,15 @@ def main():
                 metaData.tofile (outFile)
                 scale.threadArray[0:nReads-1].tofile(outFile)
             if kSAVE_DATA & kSAVE_DATA_REMOTE:
-                response = requests.post(kSERVER_URL, data={'filename': filename, 'array': str ((metaData + scale.threadArray[0:nReads-1]).tobytes(), 'latin_1')}).text
+				# modify to send : Time:UNIX time stamp, RFID:FULL RFID Tag, CageID: id, array: weight array
+                response = requests.post(kSERVER_URL, data={'tag': thisTag, 'cagename': kCAGE_NAME, 'datetime': int (startTime), 'array': str ((metaData + scale.threadArray[0:nReads-1]).tobytes(), 'latin_1')}).text
                 if response != '\nSuccess\n':
                     print (reponse)
             #scale.turnOff()
         except KeyboardInterrupt:
             #scale.turnOn()
-            event = scale.scaleRunner ('7 to quit AutoMouseWeight program\n:')
-            if event == 7:
+            event = scale.scaleRunner ('10:\tQuit AutoMouseWeight program\n')
+            if event == 10:
                 if kSAVE_DATA & kSAVE_DATA_LOCAL:
                     outFile.close()
                 GPIO.cleanup()
