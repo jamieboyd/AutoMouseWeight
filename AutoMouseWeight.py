@@ -148,8 +148,8 @@ def main():
     now = datetime.fromtimestamp (int (time()))
     startDay = datetime (now.year, now.month,now.day, kDAYSTARTHOUR,0,0)
     if startDay > now: # it's still "yesterday" according to kDAYSTARTHOUR definition of when a day starts
-        startDay = startDay + timedelta (hours=-24)
-    startSecs =startDay.timestamp() # used to report time of an entry through the weighing tube
+        startDay = startDay - timedelta (hours=24)
+    startSecs = startDay.timestamp() # used to report time of an entry through the weighing tube
     nextDay = startDay + timedelta (hours=24)
     filename = kCAGE_PATH + kCAGE_NAME + '_' + str (startDay.year) + '_' + '{:02}'.format(startDay.month)+ '_' + '{:02}'.format (startDay.day)
     if kSAVE_DATA & kSAVE_DATA_LOCAL:
@@ -195,7 +195,7 @@ def main():
             startTime =time()
             print ('mouse = ', thisTag)
             #scale.turnOn()
-            metaData [0]= -(thisTag%100000)
+            metaData [0]= -(thisTag%1000000)
             metaData[1]=startTime-startSecs
             scale.threadStart (scale.arraySize)
             nReads = scale.threadCheck()
