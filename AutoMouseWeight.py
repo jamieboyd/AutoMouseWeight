@@ -222,8 +222,8 @@ def main():
             #scale.turnOff()
         except KeyboardInterrupt:
             #scale.turnOn()
-            event = scale.scaleRunner ('7 to quit AutoMouseWeight program\n:')
-            if event == 7:
+            event = scale.scaleRunner ('10:\tquit AutoMouseWeight program')
+            if event == 10:
                 if kSAVE_DATA & kSAVE_DATA_LOCAL:
                     outFile.close()
                 GPIO.cleanup()
