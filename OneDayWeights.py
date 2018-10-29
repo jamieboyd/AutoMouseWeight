@@ -25,6 +25,7 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
         try:
             data.frombytes (binaryFile.read())
         except ValueError as e:
+            print ('Error getting data from binary file:' + str (e))
             raise e
     # import matplotlib for making plots
     if doPlots:
@@ -47,15 +48,16 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
                     msg['Subject'] = SUBJECT
                     msg['From'] = kFROMADDRESS
                     # Send the mail
-                    server = smtplib.SMTP(kSERVER)
-                    server.starttls()
-                    server.login(kFROMADDRESS, kPASSWORD)
-                    msg['To']= ', '.join(kRECIPIENTS)
-                    server.sendmail(msg.get('From'), kRECIPIENTS, msg.as_string())
-                    server.quit()
-        except Exception as e:
-            print ("Emailing failed:" + str (e))
-            sendMail = False
+                    try:
+                        server = smtplib.SMTP(kSERVER)
+                        server.starttls()
+                        server.login(kFROMADDRESS, kPASSWORD)
+                        msg['To']= ', '.join(kRECIPIENTS)
+                        server.sendmail(msg.get('From'), kRECIPIENTS, msg.as_string())
+                        server.quit()
+                    except Exception as e:
+                        print ("Emailing weights failed:" + str (e))
+                        #sendMail = False
     # dictionaries to store entries, arrays for weights, and prehaps indices of raw traces for each mouse
     #in each case keys are id_codes
     sorted_data = {}    # each value is array of all raw weigths for the mouse

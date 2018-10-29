@@ -9,7 +9,8 @@ Last Modified:
 2018/05/11 by Jamie Boyd - moved mose constants for settings into a JSON file
 2018/03/07 by Jamie Boyd - cleaned up a bit, added some comments
 """
-from RFIDTagReader import RFIDTagReader
+import RFIDTagReader
+from RFIDTagReader import TagReader
 from Scale import Scale
 import RPi.GPIO as GPIO
 from array import array
@@ -26,26 +27,6 @@ set kSAVE_DATA to kSAVE_DATA_LOCAL
 """
 kSAVE_DATA_LOCAL =1
 kSAVE_DATA_REMOTE =2
-
-"""
-RFID reader object and tag need to be global so we can access them
-easily from Tag-In-Range calback
-"""
-tagReader=None
-tag =0
-
-"""
-Threaded call back function on Tag-In-Range pin
-Updates tag global variable whenever Tag-In-Range pin toggles
-Setting tag to 0 means no tag is presently in range
-"""
-def tagReaderCallback (channel):
-    global tag # the global indicates that it is the same variable declared above and also used by main loop
-    global tagReader
-    if GPIO.input (channel) == GPIO.HIGH: # mouse just entered
-        tag = tagReader.readTag ()
-    else:  # mouse just left
-        tag = 0
 
 
 def main():
@@ -133,14 +114,8 @@ def main():
     Setup tag reader and GPIO for TIR pin, with tagReaderCallback installed as
     an event callback when pin changes either from low-to-high, or from high-to-low.
     """
-    global tag # the global indicates that it is the same variable declared above and also used by the callback
-    global tagReader
-    tagReader = RFIDTagReader('/dev/' + kSERIAL_PORT, doChecksum = False, timeOutSecs = 0.1, kind='ID')
-    GPIO.setmode (GPIO.BCM)
-    GPIO.setwarnings(False)
-    GPIO.setup (kTIR_PIN, GPIO.IN)
-    GPIO.add_event_detect (kTIR_PIN, GPIO.BOTH)
-    GPIO.add_event_callback (kTIR_PIN, tagReaderCallback)
+    tagReader = TagReader('/dev/' + kSERIAL_PORT, doChecksum = False, timeOutSecs = 0.05, kind='ID')
+    tagReader.installCallBack (kTIR_PIN)
     """
     A new binary data file is opened for each day, with a name containing the 
     current date, so open a file to start with
@@ -164,7 +139,6 @@ def main():
     Both data items have been selected to fit into a 32 bit float.
     """
     metaData = array ('f', [0,0])
-    tag = 0
     
     while True:
         try:
@@ -172,7 +146,7 @@ def main():
             Loop with a brief sleep, waiting for a tag to be read
             or a new day to start, in which case a new data file is made
             """
-            while tag==0:
+            while RFIDTagReader.globalTag==0:
                 if datetime.fromtimestamp (int (time())) > nextDay:
                     if kSAVE_DATA & kSAVE_DATA_LOCAL:
                         outFile.close()
@@ -180,7 +154,7 @@ def main():
                         try:
                             get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, emailDict)
                         except Exception as e:
-                            print ('Could not connect to network to send day weights.')
+                            print ('Error getting weights for today:' + str (e)) 
                     startDay = nextDay
                     nextDay = startDay + timedelta (hours=24)
                     startSecs =startDay.timestamp()
@@ -194,7 +168,7 @@ def main():
             A Tag has been read. Fill the metaData array and tell the C++ thread to start
             recording weights
             """
-            thisTag = tag
+            thisTag = RFIDTagReader.globalTag
             startTime =time()
             print ('mouse = ', thisTag)
             #scale.turnOn()
@@ -209,7 +183,7 @@ def main():
             the array is full, then stop the thread print the metaData array
             and the read weights from the thread array to the file
             """
-            while ((tag == thisTag or (tag == 0 and scale.threadArray [nReads-1] > kMINWEIGHT)) and nReads < scale.arraySize):
+            while ((RFIDTagReader.globalTag == thisTag or (RFIDTagReader.globalTag == 0 and scale.threadArray [nReads-1] > kMINWEIGHT)) and nReads < scale.arraySize):
                 if nReads > lastRead:
                     print (nReads, scale.threadArray [nReads-1])
                     lastRead = nReads
@@ -220,7 +194,7 @@ def main():
                 metaData.tofile (outFile)
                 scale.threadArray[0:nReads-1].tofile(outFile)
             if kSAVE_DATA & kSAVE_DATA_REMOTE:
-				# modify to send : Time:UNIX time stamp, RFID:FULL RFID Tag, CageID: id, array: weight array
+		# modify to send : Time:UNIX time stamp, RFID:FULL RFID Tag, CageID: id, array: weight array
                 response = requests.post(kSERVER_URL, data={'tag': thisTag, 'cagename': kCAGE_NAME, 'datetime': int (startTime), 'array': str ((metaData + scale.threadArray[0:nReads-1]).tobytes(), 'latin_1')}).text
                 if response != '\nSuccess\n':
                     print (reponse)
