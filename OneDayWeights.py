@@ -33,30 +33,29 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
     sendMail = False
     if emailDict is not None:
         sendMail = True
-        try:
-            kFROMADDRESS = emailDict.get ('Email From Address')
-            kRECIPIENTS = emailDict.get ('Email Recipients')
-            kPASSWORD = emailDict.get ('Email Password')
-            kSERVER = emailDict.get ('Email Server')
-            import smtplib
-            from email.mime.text import MIMEText
-            SUBJECT = 'Weights for ' + cageName + ' on ' + str (date_year) + '/' + '{:02}'.format(date_month)  + '/' + '{:02}'.format (date_day)
-            def emailWeights (SUBJECT, file_name):
-                with open (file_name) as fp:
-                    print ("get day weights filename to email = ", file_name)
-                    msg = MIMEText(fp.read())
-                    msg['Subject'] = SUBJECT
-                    msg['From'] = kFROMADDRESS
-                    # Send the mail
-                    try:
-                        server = smtplib.SMTP(kSERVER)
-                        server.starttls()
-                        server.login(kFROMADDRESS, kPASSWORD)
-                        msg['To']= ', '.join(kRECIPIENTS)
-                        server.sendmail(msg.get('From'), kRECIPIENTS, msg.as_string())
-                        server.quit()
-                    except Exception as e:
-                        print ("Emailing weights failed:" + str (e))
+        kFROMADDRESS = emailDict.get ('Email From Address')
+        kRECIPIENTS = emailDict.get ('Email Recipients')
+        kPASSWORD = emailDict.get ('Email Password')
+        kSERVER = emailDict.get ('Email Server')
+        import smtplib
+        from email.mime.text import MIMEText
+        SUBJECT = 'Weights for ' + cageName + ' on ' + str (date_year) + '/' + '{:02}'.format(date_month)  + '/' + '{:02}'.format (date_day)
+        def emailWeights (SUBJECT, file_name):
+            with open (file_name) as fp:
+                print ("get day weights filename to email = ", file_name)
+                msg = MIMEText(fp.read())
+                msg['Subject'] = SUBJECT
+                msg['From'] = kFROMADDRESS
+                # Send the mail
+                try:
+                    server = smtplib.SMTP(kSERVER)
+                    server.starttls()
+                    server.login(kFROMADDRESS, kPASSWORD)
+                    msg['To']= ', '.join(kRECIPIENTS)
+                    server.sendmail(msg.get('From'), kRECIPIENTS, msg.as_string())
+                    server.quit()
+                except Exception as e:
+                    print ("Emailing weights failed:" + str (e))
                         #sendMail = False
     # dictionaries to store entries, arrays for weights, and prehaps indices of raw traces for each mouse
     #in each case keys are id_codes
