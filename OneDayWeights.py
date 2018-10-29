@@ -156,9 +156,9 @@ Sample usage of the program
 """
 
 if __name__ == '__main__':
-    kDATA_FOLDER = '/home/pi/Documents/AutoMouseWeight_Data/'       #where data files are located
-    kOUTPUT_FOLDER = '/home/pi/Documents/AutoMouseWeight_Data/'     # where text files are saved
-    kCAGE_NAME = 'cage_0'                                           # names of data files start with cage name
+    kDATA_FOLDER = '/home/pi/Documents/AutoMouseWeightData/'       #where data files are located
+    kOUTPUT_FOLDER = '/home/pi/Documents/AutoMouseWeightData/'     # where text files are saved
+    kCAGE_NAME = 'cage5'                                           # names of data files start with cage name
 
     kDO_PLOTS = False # program will stop and display plots of raw data and smoothed derivative
     kSEND_MAIL = None # make a dictionary with email adress and server info to send email, not likely if running standalone
