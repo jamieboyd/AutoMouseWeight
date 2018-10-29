@@ -9,7 +9,7 @@ Last Modified:
 2018/05/11 by Jamie Boyd - moved mose constants for settings into a JSON file
 2018/03/07 by Jamie Boyd - cleaned up a bit, added some comments
 """
-from RFIDTagReader import RFIDTagReader
+from RFIDTagReader import TagReader
 from Scale import Scale
 import RPi.GPIO as GPIO
 from array import array
@@ -177,7 +177,10 @@ def main():
                     if kSAVE_DATA & kSAVE_DATA_LOCAL:
                         outFile.close()
                         print ('save data date =', startDay.year, startDay.month, startDay.day)
-                        get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, emailDict)
+                        try:
+                            get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, emailDict)
+                        except Exception as e:
+                            print ('Error getting weights for today:' + str (e)) 
                     startDay = nextDay
                     nextDay = startDay + timedelta (hours=24)
                     startSecs =startDay.timestamp()
@@ -217,7 +220,7 @@ def main():
                 metaData.tofile (outFile)
                 scale.threadArray[0:nReads-1].tofile(outFile)
             if kSAVE_DATA & kSAVE_DATA_REMOTE:
-				# modify to send : Time:UNIX time stamp, RFID:FULL RFID Tag, CageID: id, array: weight array
+		# modify to send : Time:UNIX time stamp, RFID:FULL RFID Tag, CageID: id, array: weight array
                 response = requests.post(kSERVER_URL, data={'tag': thisTag, 'cagename': kCAGE_NAME, 'datetime': int (startTime), 'array': str ((metaData + scale.threadArray[0:nReads-1]).tobytes(), 'latin_1')}).text
                 if response != '\nSuccess\n':
                     print (reponse)
