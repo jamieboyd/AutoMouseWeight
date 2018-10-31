@@ -11,7 +11,7 @@ kHIST_BINSIZE = 0.1 # width of the bins in the cumulative histogram, in grams
 kKERNEL_WIDTH = 17 # width of the smoothing kernel used for the derivative of the histogram
 kN_SMOOTH = 5 # number of times the smoothing kernel is applied to the derivarive
 
-def get_day_weights (folder_path, cageName, date_year, date_month, date_day, output_path, doPlots, emailDict):
+def get_day_weights (folder_path, cageName, date_year, date_month, date_day, output_path, doPlots, emailDict, cutoffDict):
     # ensure paths end in forward slash, but don't add a second forward slash
     if not folder_path.endswith ('/'):
         folder_path.append ('/')
@@ -37,6 +37,7 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
         kRECIPIENTS = emailDict.get ('Email Recipients')
         kPASSWORD = emailDict.get ('Email Password')
         kSERVER = emailDict.get ('Email Server')
+        kMICELIST = emailDict.get ('Mice List')
         import smtplib
         from email.mime.text import MIMEText
         SUBJECT = 'Weights for ' + cageName + ' on ' + str (date_year) + '/' + '{:02}'.format(date_month)  + '/' + '{:02}'.format (date_day)
@@ -56,8 +57,14 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
                     server.quit()
                 except Exception as e:
                     print ("Emailing weights failed:" + str (e))
-                        #sendMail = False
-    # dictionaries to store entries, arrays for weights, and prehaps indices of raw traces for each mouse
+    # make a dictionary to map abbreviated tag ID in data to full tag id from cutoffDict
+    hasCutoff = False
+    if cutoffDict is not None:
+        hasCutoff = True
+        unTruncTags= {}
+        for id_code in sorted(cutoffDict.keys()):
+            unTruncTags.update({str(int(id_code) % 1000000) : id_code})
+    # dictionaries to store entries, arrays for weights, and perhaps indices of raw traces for each mouse
     #in each case keys are id_codes
     sorted_data = {}    # each value is array of all raw weigths for the mouse
     entry_data = {}     # each value is number of tube entries for the mouse
@@ -68,7 +75,9 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
     iPt =0
     while iPt < nPnts:
         # first point is mouse RFID code, in negative for easier parsing
-        id_code= 'm' + str (int(-data[iPt]))
+        id_code= str (int(-data[iPt]))
+        if hasCutoff:
+            id_code = str (unTruncTags.get (id_code, id_code))
         # second point is time, in seconds since midnight, which we don't care about when parsing a single file
         iPt +=2
         startPt = iPt
@@ -100,8 +109,10 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
     file_name = output_path + cageName + '_weights_' + date_string + '.txt'
     histNumBins = int ((kMAX_WEIGHT- kMIN_WEIGHT)/kHIST_BINSIZE)
     kernel = gKernel (kKERNEL_WIDTH)
+   
+    
     with open (file_name, 'w') as out_file:
-        out_file.write ('mouse\tentries\tweight\r')
+        out_file.write ('mouse\t\tentries\tweight\r')
         for id_code in sorted(sorted_data.keys()):
             if len (sorted_data[id_code]) < 5:
                 result = float ('nan')
@@ -135,7 +146,10 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
                 plt.show()
             out_file.write (id_code + '\t') 
             out_file.write (str (entries) + '\t')
-            out_file.write ('{:.1f}'.format (result) + '\n' )
+            out_file.write ('{:.1f}'.format (result))
+            if hasCutoff and result < cutoffDict.get(id_code):
+                out_file.write ('\t***underweight***')
+            out_file.write ('\n') 
             #out_file.flush()
     if sendMail:
         emailWeights (SUBJECT, file_name)
@@ -157,13 +171,26 @@ Sample usage of the program
 """
 
 if __name__ == '__main__':
-    kDATA_FOLDER = '/home/pi/Documents/AutoMouseWeightData/'       #where data files are located
-    kOUTPUT_FOLDER = '/home/pi/Documents/AutoMouseWeightData/'     # where text files are saved
+    kDATA_FOLDER = '/home/pi/Documents/AMWdata/'       #where data files are located
+    kOUTPUT_FOLDER = '/home/pi/Documents/'     # where text files are saved
     kCAGE_NAME = 'cage5'                                           # names of data files start with cage name
 
     kDO_PLOTS = False # program will stop and display plots of raw data and smoothed derivative
     kSEND_MAIL = None # make a dictionary with email adress and server info to send email, not likely if running standalone
 
+    try:
+        with open ('AMW_config.jsn', 'r') as fp:
+            data = fp.read()
+            data = data.replace('\n', ',')
+            configDict = json.loads(data)
+            fp.close()
+            cutoffDict = configDict.get ('Cutoff Dict')
+    except Exception as e:
+        print ('Could not find config dictionary')
+        cutoffDict = None
+
+    
+    
     while True:
         year = 0
         while year < 2000 or year > 2020:
@@ -175,5 +202,5 @@ if __name__ == '__main__':
         while day < 1 or day > 31:
             day = int (input ('Day='))
             
-        get_day_weights (kDATA_FOLDER, kCAGE_NAME, year, month , day, kOUTPUT_FOLDER, kDO_PLOTS, kSEND_MAIL)
+        get_day_weights (kDATA_FOLDER, kCAGE_NAME, year, month , day, kOUTPUT_FOLDER, kDO_PLOTS, kSEND_MAIL, cutoffDict)
 
