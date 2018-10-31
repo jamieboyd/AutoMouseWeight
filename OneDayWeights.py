@@ -37,22 +37,21 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
         kRECIPIENTS = emailDict.get ('Email Recipients')
         kPASSWORD = emailDict.get ('Email Password')
         kSERVER = emailDict.get ('Email Server')
-        kMICELIST = emailDict.get ('Mice List')
         import smtplib
         from email.mime.text import MIMEText
         SUBJECT = 'Weights for ' + cageName + ' on ' + str (date_year) + '/' + '{:02}'.format(date_month)  + '/' + '{:02}'.format (date_day)
         def emailWeights (SUBJECT, file_name):
             with open (file_name) as fp:
-                print ("get day weights filename to email = ", file_name)
+                #print ("get day weights filename to email = ", file_name)
                 msg = MIMEText(fp.read())
                 msg['Subject'] = SUBJECT
                 msg['From'] = kFROMADDRESS
+                msg['To']= ', '.join(kRECIPIENTS)
                 # Send the mail
                 try:
                     server = smtplib.SMTP(kSERVER)
                     server.starttls()
                     server.login(kFROMADDRESS, kPASSWORD)
-                    msg['To']= ', '.join(kRECIPIENTS)
                     server.sendmail(msg.get('From'), kRECIPIENTS, msg.as_string())
                     server.quit()
                 except Exception as e:
@@ -147,10 +146,12 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
             out_file.write (id_code + '\t') 
             out_file.write (str (entries) + '\t')
             out_file.write ('{:.1f}'.format (result))
-            if hasCutoff and result < cutoffDict.get(id_code):
-                out_file.write ('\t***underweight***')
+            if hasCutoff and result is not None and cutoffDict.get(id_code) is not None:
+                if result < (cutoffDict.get(id_code)):
+                    out_file.write ('\t***underweight***')
             out_file.write ('\n') 
-            #out_file.flush()
+        out_file.flush()
+    out_file.close()
     if sendMail:
         emailWeights (SUBJECT, file_name)
 
@@ -176,7 +177,6 @@ if __name__ == '__main__':
     kCAGE_NAME = 'cage5'                                           # names of data files start with cage name
 
     kDO_PLOTS = False # program will stop and display plots of raw data and smoothed derivative
-    kSEND_MAIL = None # make a dictionary with email adress and server info to send email, not likely if running standalone
 
     try:
         with open ('AMW_config.jsn', 'r') as fp:
@@ -202,5 +202,5 @@ if __name__ == '__main__':
         while day < 1 or day > 31:
             day = int (input ('Day='))
             
-        get_day_weights (kDATA_FOLDER, kCAGE_NAME, year, month , day, kOUTPUT_FOLDER, kDO_PLOTS, kSEND_MAIL, cutoffDict)
+        get_day_weights (kDATA_FOLDER, kCAGE_NAME, year, month , day, kOUTPUT_FOLDER, kDO_PLOTS, configDict, cutoffDict)
 
