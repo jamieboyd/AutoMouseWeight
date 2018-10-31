@@ -42,11 +42,12 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
         SUBJECT = 'Weights for ' + cageName + ' on ' + str (date_year) + '/' + '{:02}'.format(date_month)  + '/' + '{:02}'.format (date_day)
         def emailWeights (SUBJECT, file_name):
             with open (file_name) as fp:
-                #print ("get day weights filename to email = ", file_name)
+                print ("get day weights filename to email = ", file_name)
                 msg = MIMEText(fp.read())
                 msg['Subject'] = SUBJECT
                 msg['From'] = kFROMADDRESS
                 msg['To']= ', '.join(kRECIPIENTS)
+                print (msg)
                 # Send the mail
                 try:
                     server = smtplib.SMTP(kSERVER)
@@ -147,7 +148,7 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
             out_file.write (str (entries) + '\t')
             out_file.write ('{:.1f}'.format (result))
             if hasCutoff and result is not None and cutoffDict.get(id_code) is not None:
-                if result < (cutoffDict.get(id_code)):
+                if result < float(cutoffDict.get(id_code)):
                     out_file.write ('\t***underweight***')
             out_file.write ('\n') 
         out_file.flush()
@@ -172,11 +173,11 @@ Sample usage of the program
 """
 
 if __name__ == '__main__':
-    kDATA_FOLDER = '/home/pi/Documents/AMWdata/'       #where data files are located
-    kOUTPUT_FOLDER = '/home/pi/Documents/'     # where text files are saved
-    kCAGE_NAME = 'cage5'                                           # names of data files start with cage name
+    kDATA_FOLDER = '/home/pi/Documents/AMWdata/'    #where data files are located
+    kOUTPUT_FOLDER = '/home/pi/Documents/'          # where text files are saved
+    kCAGE_NAME = 'cage5'                            # names of data files start with cage name
 
-    kDO_PLOTS = False # program will stop and display plots of raw data and smoothed derivative
+    kDO_PLOTS = False # if true, program will stop and display plots of raw data and smoothed derivative, needs matplotlib
 
     try:
         with open ('AMW_config.jsn', 'r') as fp:
@@ -186,7 +187,7 @@ if __name__ == '__main__':
             fp.close()
             cutoffDict = configDict.get ('Cutoff Dict')
     except Exception as e:
-        print ('Could not find config dictionary')
+        print ('Could not find config dictionary, no emailing for you.')
         cutoffDict = None
 
     
