@@ -81,7 +81,7 @@ def main():
             kCAGE_NAME = input('Enter the cage name, used to distinguish data from different cages:')
             kCAGE_PATH = input ('Enter the path where data from each day will be saved:')
             kDAYSTARTHOUR = int (input ('Enter the rollover hour, in 24 hour format, when a new data file is started:'))
-            kTHREADARRAYSIZE = int (input ('Enter size of array used for threaded reading from Load Cell'))
+            kTHREADARRAYSIZE = int (input ('Enter size of array used for threaded reading from Load Cell:'))
             kMINWEIGHT = float (input ('Enter cutoff weight where we stop the thread from reading:'))
             kDATA_PIN=  int (input ('Enter number of GPIO pin connected to data pin on load cell:'))
             kCLOCK_PIN = int (input ('Enter number of GPIO pin connected to clock pin on load cell:'))
@@ -91,7 +91,7 @@ def main():
             kSAVE_DATA = int (input ('To save data locally, enter 1; to send data to a server, not yet supported, enter 2:'))
             tempInput = input ('Track weights against existing cutoffs(Y or N):')
             kHAS_CUTOFFS = bool(tempInput [0] == 'y' or tempInput [0] == 'Y')
-            if kHASCUTOFFS:
+            if kHAS_CUTOFFS:
                 kCUT_OFF_DICT = {}
                 while True:
                     tempInput = input ('Enter a Tag ID and cuttoff weight, separated by a comma, or return to end entry:')
