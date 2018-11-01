@@ -60,33 +60,37 @@ def main():
             # RFID Reader. Note that code as written only works with ID tag readers not RDM readers because of reliance on Tag-In-Range Pin
             kSERIAL_PORT = configDict.get ('Serial Port')
             kTIR_PIN = configDict.get ('GPIO Tag In Range Pin')
-            #whether data is saved locally or, not yet supported, sent to a server
+            #whether data is saved locally 1 or, not yet supported, sent to a server 2, or both, 3
             kSAVE_DATA = configDict.get ('Data Save Options')
-            kCUT_OFF_DICT = configDict.get ('Cutoff Dict')
+            # a dictionary of ID Tags and cutoff weights, as when monitoring animal weights over time
+            kHAS_CUTOFFS = configDict.get ('Has Cutoffs')
+            if kHAS_CUTOFFS:
+                kCUT_OFF_DICT = configDict.get ('Cutoff Dict')
+            else:
+                kCUT_OFF_DICT =None
             # can call get day weights code and email weights, needs extra options
-            emailWeights = configDict.get ('Email Weights') 
-            if emailWeights:
-                kFROMADDRESS = configDict.get ('Email From Address')
-                kRECIPIENTS = configDict.get ('Email Recipients')
-                kPASSWORD = configDict.get ('Email Password')
-                kSERVER = configDict.get ('Email Server')
+            kEMAIL_WEIGHTS = configDict.get ('Email Weights')
+            if kEMAIL_WEIGHTS:
+                kEMAIL_DICT = configDict.get ('Email Dict')
+            else:
+                kEMAIL_DICT = None
     except (TypeError, IOError, ValueError) as e:
             #we will make a file if we didn't find it, or if it was incomplete
             print ('Unable to load configuration data from AMW_config.jsn, let\'s make a new AMW_config.jsn.\n')
+            jsonDict = {}
             kCAGE_NAME = input('Enter the cage name, used to distinguish data from different cages:')
             kCAGE_PATH = input ('Enter the path where data from each day will be saved:')
             kDAYSTARTHOUR = int (input ('Enter the rollover hour, in 24 hour format, when a new data file is started:'))
             kTHREADARRAYSIZE = int (input ('Enter size of array used for threaded reading from Load Cell'))
-            kMINWEIGHT = float (input ('Enter cuttoff weight where we stop the thread from reading:'))
+            kMINWEIGHT = float (input ('Enter cutoff weight where we stop the thread from reading:'))
             kDATA_PIN=  int (input ('Enter number of GPIO pin connected to data pin on load cell:'))
             kCLOCK_PIN = int (input ('Enter number of GPIO pin connected to clock pin on load cell:'))
             kGRAMS_PER_UNIT = float (input('Enter the scaling of the load cell, in grams per A/D unit:'))
             kSERIAL_PORT = input ('Enter the name of serial port used for tag reader,e.g. serial0 or ttyAMA0:')
             kTIR_PIN = int (input ('Enter number of the GPIO pin connected to the Tag-In-Range pin on the RFID reader:'))
             kSAVE_DATA = int (input ('To save data locally, enter 1; to send data to a server, not yet supported, enter 2:'))
-            kCUT_OFF_DICT = None
             tempInput = input ('Track weights against existing cutoffs(Y or N):')
-            kHASCUTOFFS = bool(tempInput [0] == 'y' or tempInput [0] == 'Y')
+            kHAS_CUTOFFS = bool(tempInput [0] == 'y' or tempInput [0] == 'Y')
             if kHASCUTOFFS:
                 kCUT_OFF_DICT = {}
                 while True:
@@ -98,27 +102,29 @@ def main():
                         kCUT_OFF_DICT.update ({entryList[0] : float (entryList[1])})
                     except Exception as e:
                         print ('bad data entered', str (e))
-            jsonDict.update ({'Cutoff Dict': kCUT_OFF_DICT})
+            else:
+                kCUT_OFF_DICT=None
+            jsonDict.update ({'Has Cutoffs':kHAS_CUTOFFS, 'Cutoff Dict': kCUT_OFF_DICT})
             tempInput = input ('Email weights every day ? (Y or N):')
             kEMAIL_WEIGHTS = bool(tempInput [0] == 'y' or tempInput [0] == 'Y')
-            # add info to a dictionay we will write to file
-            jsonDict={'Cage Name':kCAGE_NAME, 'Data Path':kCAGE_PATH, 'Day Start Hour':kDAYSTARTHOUR, 'Thread Array Size':kTHREADARRAYSIZE}
-            jsonDict.update ({'Minimum Weight':kMINWEIGHT, 'GPIO Data Pin': kDATA_PIN, 'GPIO Clock Pin':kCLOCK_PIN})
-            jsonDict.update ({'GPIO Tag In Range Pin':kTIR_PIN, 'Grams Per Unit':kGRAMS_PER_UNIT, 'Serial Port':kSERIAL_PORT})
-            jsonDict.update ({'Data Save Options':kSAVE_DATA, 'Email Weights':kEMAIL_WEIGHTS})
             if kEMAIL_WEIGHTS:
+                kEMAIL_DICT = {}
                 kFROMADDRESS = input ('Enter the account used to send the email with  weight data:')
                 kPASSWORD = input ('Enter the password for the email account used to send the mail:')
                 kSERVER = input ('Enter the name of the email server and port number, e.g., smtp.gmail.com:87, with separating colon:')
                 kRECIPIENTS = tuple (input('Enter comma-separated list of email addresses to get the daily weight email:').split(','))
-                jsonDict.update ({'Email From Address':kFROMADDRESS, 'Email Recipients':kRECIPIENTS})
-                jsonDict.update ({'Email Password':kPASSWORD, 'Email Server': kSERVER})
+                kEMAIL_DICT.update ({'Email From Address':kFROMADDRESS, 'Email Recipients':kRECIPIENTS})
+                kEMAIL_DICT.update ({'Email Password':kPASSWORD, 'Email Server': kSERVER})
+            else:
+                kEMAIL_DICT = None
+            jsonDict.update ({'Email Weights' : kEMAIL_WEIGHTS, 'Email Dict' : kEMAIL_DICT})
+            # add info to a dictionay we will write to file
+            jsonDict.update ({'Cage Name':kCAGE_NAME, 'Data Path':kCAGE_PATH, 'Day Start Hour':kDAYSTARTHOUR, 'Thread Array Size':kTHREADARRAYSIZE})
+            jsonDict.update ({'Minimum Weight':kMINWEIGHT, 'GPIO Data Pin': kDATA_PIN, 'GPIO Clock Pin':kCLOCK_PIN})
+            jsonDict.update ({'GPIO Tag In Range Pin':kTIR_PIN, 'Grams Per Unit':kGRAMS_PER_UNIT, 'Serial Port':kSERIAL_PORT})
+            jsonDict.update ({'Data Save Options':kSAVE_DATA, 'Email Weights':kEMAIL_WEIGHTS})
             with open ('AMW_config.jsn', 'w') as fp:
                 fp.write (json.dumps (jsonDict, sort_keys = True, separators=('\r\n', ':')))
-    if kEMAIL_WEIGHTS:
-        emailDict = {'Email From Address':kFROMADDRESS, 'Email Recipients':kRECIPIENTS, 'Email Password':kPASSWORD, 'Email Server':kSERVER}
-    else:
-        emailDict = None
     """
     Initialize the scale from variables listed above and do an initial taring
     of the scale with 10 reads. Because pins are only accessed from C++, do not call
@@ -169,7 +175,7 @@ def main():
                         outFile.close()
                         print ('save data date =', startDay.year, startDay.month, startDay.day)
                         try:
-                            get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, emailDict, kCUT_OFF_DICT)
+                            get_day_weights (kCAGE_PATH, kCAGE_NAME, startDay.year, startDay.month, startDay.day, kCAGE_PATH, False, kEMAIL_DICT, kCUT_OFF_DICT)
                         except Exception as e:
                             print ('Error getting weights for today:' + str (e)) 
                     startDay = nextDay

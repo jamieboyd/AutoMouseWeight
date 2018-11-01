@@ -173,8 +173,8 @@ Sample usage of the program
 """
 
 if __name__ == '__main__':
-    kDATA_FOLDER = '/home/pi/Documents/AMWdata/'    #where data files are located
-    kOUTPUT_FOLDER = '/home/pi/Documents/'          # where text files are saved
+    kDATA_FOLDER = '/Users/jamie/Documents/AutoHeadFix_MiceData/2018_10/'    #where data files are located
+    kOUTPUT_FOLDER = '/Users/jamie/Documents/AutoHeadFix_MiceData/2018_10/'          # where text files are saved
     kCAGE_NAME = 'cage5'                            # names of data files start with cage name
 
     kDO_PLOTS = False # if true, program will stop and display plots of raw data and smoothed derivative, needs matplotlib
@@ -186,9 +186,11 @@ if __name__ == '__main__':
             configDict = json.loads(data)
             fp.close()
             cutoffDict = configDict.get ('Cutoff Dict')
+            emailDict = configDict.get ('Email Dict')
     except Exception as e:
         print ('Could not find config dictionary, no emailing for you.')
         cutoffDict = None
+        emailDict = None
 
     
     
@@ -203,5 +205,5 @@ if __name__ == '__main__':
         while day < 1 or day > 31:
             day = int (input ('Day='))
             
-        get_day_weights (kDATA_FOLDER, kCAGE_NAME, year, month , day, kOUTPUT_FOLDER, kDO_PLOTS, configDict, cutoffDict)
+        get_day_weights (kDATA_FOLDER, kCAGE_NAME, year, month , day, kOUTPUT_FOLDER, kDO_PLOTS, emailDict, cutoffDict)
 
