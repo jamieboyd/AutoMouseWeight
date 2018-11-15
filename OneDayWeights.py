@@ -57,13 +57,7 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
                     server.quit()
                 except Exception as e:
                     print ("Emailing weights failed:" + str (e))
-    # make a dictionary to map abbreviated tag ID in data to full tag id from cutoffDict
-    hasCutoff = False
-    if cutoffDict is not None:
-        hasCutoff = True
-        unTruncTags= {}
-        for id_code in sorted(cutoffDict.keys()):
-            unTruncTags.update({str(int(id_code) % 1000000) : id_code})
+
     # dictionaries to store entries, arrays for weights, and perhaps indices of raw traces for each mouse
     #in each case keys are id_codes
     sorted_data = {}    # each value is array of all raw weigths for the mouse
@@ -76,8 +70,6 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
     while iPt < nPnts:
         # first point is mouse RFID code, in negative for easier parsing
         id_code= str (int(-data[iPt]))
-        if hasCutoff:
-            id_code = str (unTruncTags.get (id_code, id_code))
         # second point is time, in seconds since midnight, which we don't care about when parsing a single file
         iPt +=2
         startPt = iPt
@@ -109,12 +101,29 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
     file_name = output_path + cageName + '_weights_' + date_string + '.txt'
     histNumBins = int ((kMAX_WEIGHT- kMIN_WEIGHT)/kHIST_BINSIZE)
     kernel = gKernel (kKERNEL_WIDTH)
+    # make a dictionary to map  full tag id from cutoffDict to abbreviated tag ID in data
+    truncTags = {}
+    hasCutoff = False
+    if cutoffDict is not None:
+        hasCutoff = True
+        unTruncTags= {}
+        truncTags = {}
+        for long_id_code in cutoffDict.keys():
+            unTruncTags.update({str(int(long_id_code) % 1000000) : long_id_code})
+        for short_id_code in unTruncTags.keys():
+            truncTags.update ({unTruncTags.get(short_id_code):short_id_code})
+    # unTruncTags only works if cutoffDict dictionary was provided, else spoof it with truncated tags from data
+    else:
+        for short_id_code in sorted_data.keys():
+            truncTags.update({short_id_code : short_id_code})
    
     
     with open (file_name, 'w') as out_file:
-        out_file.write ('mouse\t\tentries\tweight\r')
-        for id_code in sorted(sorted_data.keys()):
-            if len (sorted_data[id_code]) < 5:
+        out_file.write ('mouse\tentries\tweight\r')
+        #for id_code in sorted(sorted_data.keys()):
+        for long_id_code in sorted (truncTags.keys()):
+            id_code = truncTags.get(long_id_code)
+            if id_code is None or len (sorted_data[id_code]) < 5:
                 result = float ('nan')
                 entries =0
             else:
@@ -135,7 +144,7 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
                 result = (WtVals [position] + WtVals [position + 1])/2
                 entries = entry_data [id_code]
             if doPlots:
-                print (id_code, str (entries), '{:.2f}'.format (result))
+                print (long_id_code, str (entries), '{:.2f}'.format (result))
                 mRunStarts =run_starts [id_code]
                 for entry in range (0, entries):
                     firstPt = mRunStarts [2*entry]
@@ -144,12 +153,12 @@ def get_day_weights (folder_path, cageName, date_year, date_month, date_day, out
                 plt.show()
                 plt.plot(WtVals[:-1], diffArray)
                 plt.show()
-            out_file.write (id_code + '\t') 
+            out_file.write (long_id_code + '\t') 
             out_file.write (str (entries) + '\t')
             out_file.write ('{:.1f}'.format (result))
             if hasCutoff and result is not None and cutoffDict.get(id_code) is not None:
                 if result < float(cutoffDict.get(id_code)):
-                    out_file.write ('\t***underweight***')
+                    out_file.write (' ***underweight***')
             out_file.write ('\n') 
         out_file.flush()
     out_file.close()
@@ -173,8 +182,8 @@ Sample usage of the program
 """
 
 if __name__ == '__main__':
-    kDATA_FOLDER = '/Users/jamie/Documents/AutoHeadFix_MiceData/2018_10/'    #where data files are located
-    kOUTPUT_FOLDER = '/Users/jamie/Documents/AutoHeadFix_MiceData/2018_10/'          # where text files are saved
+    kDATA_FOLDER = 'home/pi/Documents/AutoMouseWeightData/'    #where data files are located
+    kOUTPUT_FOLDER = 'home/pi/Documents/AutoMouseWeightData/'          # where text files are saved
     kCAGE_NAME = 'cage5'                            # names of data files start with cage name
 
     kDO_PLOTS = False # if true, program will stop and display plots of raw data and smoothed derivative, needs matplotlib
